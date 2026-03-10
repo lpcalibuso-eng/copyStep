@@ -1,0 +1,23 @@
+Stage the specific file:
+git add <path/to/file>
+example:
+git add "/opt/lampp/htdocs/Prototype System/Step/kldstep/resources/js/Pages/Adviser/Permission.jsx"
+
+Commit the staged change:
+git commit -m "Your commit message" 
+
+1. Commit the File
+Command: git commit -m "Your descriptive message" 
+
+2. Verify the Remote Connection
+Command: git remote -v
+Expected Output: You should see a name like origin followed by your GitHub or GitLab URL. 
+
+3. Push to the Remote Repository 
+
+Command: git push origin <your-branch-name>
+
+
+Shortcut Tip
+If you want to push whatever branch you are currently on without typing the name, you can use:
+Command: git push origin HEAD

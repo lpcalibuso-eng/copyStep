@@ -322,7 +322,7 @@ export default function LedgerApprovalsPage() {
   return (
     <AuthenticatedLayout>
       <Head title="Ledger" />
-      <div className="py-12">
+      <div className="py-8">
         <div className="mx-auto max-w-7xl sm:px-6 lg:px-8 space-y-6">
           {/* Header */}
           <div>
@@ -425,14 +425,14 @@ export default function LedgerApprovalsPage() {
                       placeholder="Search by ID..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full h-10 pl-9 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:border-gray-300 focus:ring-2 focus:ring-gray-200 outline-none transition"
                     />
                   </div>
 
                   <select
                     value={filterProject}
                     onChange={(e) => setFilterProject(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full h-10 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:border-gray-300 focus:ring-2 focus:ring-gray-200 outline-none transition"
                   >
                     <option value="all">All Projects</option>
                     <option value="Annual Science Fair">Annual Science Fair</option>
@@ -444,7 +444,7 @@ export default function LedgerApprovalsPage() {
                   <select
                     value={filterStatus}
                     onChange={(e) => setFilterStatus(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full h-10 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:border-gray-300 focus:ring-2 focus:ring-gray-200 outline-none transition"
                   >
                     <option value="all">All Status</option>
                     <option value="Pending">Pending</option>
@@ -594,11 +594,11 @@ export default function LedgerApprovalsPage() {
       {/* Details Modal (unchanged) */}
       <Modal open={isDetailsOpen} onClose={() => setIsDetailsOpen(false)} title="Ledger Entry Details">
         {selectedEntry && (
-          <div className="space-y-6">
+          <div className="space-y-6 pt-4">
             {/* Basic Info */}
             <div>
               <h4 className="text-sm font-medium text-gray-500 mb-3">Basic Information</h4>
-              <div className="space-y-3">
+              <div className="space-y-3 pt-3">
                 <div>
                   <p className="text-xs text-gray-500">Ledger ID</p>
                   <p className="text-sm text-blue-600">{selectedEntry.id}</p>
@@ -627,7 +627,7 @@ export default function LedgerApprovalsPage() {
             {/* Financial Data */}
             <div className="border-t pt-6">
               <h4 className="text-sm font-medium text-gray-500 mb-3">Financial Data</h4>
-              <div className="space-y-3">
+              <div className="space-y-3 pt-3">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <p className="text-xs text-gray-500">Amount</p>
@@ -689,7 +689,7 @@ export default function LedgerApprovalsPage() {
             {/* Verification Timeline */}
             <div className="border-t pt-6">
               <h4 className="text-sm font-medium text-gray-500 mb-3">Verification Timeline</h4>
-              <div className="space-y-3">
+              <div className="space-y-3 pt-3">
                 <div className="flex items-start gap-3">
                   <div className="w-2 h-2 bg-blue-600 rounded-full mt-1.5"></div>
                   <div>
@@ -760,14 +760,14 @@ export default function LedgerApprovalsPage() {
 
       {/* Reject Dialog */}
       <Modal open={isRejectDialogOpen} onClose={() => { setIsRejectDialogOpen(false); setRejectionReason(''); }} title="Reject Ledger Entry">
-        <div className="space-y-4">
+        <div className="space-y-4 pt-4">
           <p className="text-sm text-gray-600">Please provide a detailed reason for rejecting this entry.</p>
           <textarea
             rows={4}
             value={rejectionReason}
             onChange={(e) => setRejectionReason(e.target.value)}
             placeholder="Explain why..."
-            className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:border-gray-300 focus:ring-2 focus:ring-gray-200 outline-none transition"
           />
           <div className="flex gap-3">
             <button
@@ -788,14 +788,14 @@ export default function LedgerApprovalsPage() {
 
       {/* Correction Dialog */}
       <Modal open={isCorrectionDialogOpen} onClose={() => { setIsCorrectionDialogOpen(false); setCorrectionReason(''); }} title="Request Correction">
-        <div className="space-y-4">
+        <div className="space-y-4 pt-4">
           <p className="text-sm text-gray-600">Explain what needs to be corrected. The original entry will be marked as corrected.</p>
           <textarea
             rows={4}
             value={correctionReason}
             onChange={(e) => setCorrectionReason(e.target.value)}
             placeholder="Describe the correction..."
-            className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:border-gray-300 focus:ring-2 focus:ring-gray-200 outline-none transition"
           />
           <div className="flex gap-3">
             <button

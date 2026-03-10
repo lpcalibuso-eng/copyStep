@@ -94,6 +94,15 @@ export default function AdviserApprovalsPage() {
   const [showReject, setShowReject] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
 
+  // Read tab from query parameter
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tabParam = params.get('tab');
+    if (tabParam === 'meetings') {
+      setTab('meetings');
+    }
+  }, []);
+
   const totalPending = pendingProjects.length + pendingLedger.length + pendingProofs.length + pendingMeetings.length;
 
   const counts = {
@@ -201,7 +210,7 @@ export default function AdviserApprovalsPage() {
     <AuthenticatedLayout>
       <Head title="Approvals" />
 
-      <div className="py-12">
+      <div className="py-8">
         <div className="mx-auto max-w-7xl sm:px-6 lg:px-8 space-y-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
@@ -264,10 +273,10 @@ export default function AdviserApprovalsPage() {
                  
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                  
-                  <input placeholder="Search submissions..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-gray-200" />
+                  <input placeholder="Search submissions..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full h-10 pl-9 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:border-gray-300 focus:ring-2 focus:ring-gray-200 outline-none transition" />
                 </div>
               <div>
-                <select className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-gray-200" onChange={(e) => { /* placeholder */ }}>
+                <select className="w-full h-10 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:border-gray-300 focus:ring-2 focus:ring-gray-200 outline-none transition" onChange={(e) => { /* placeholder */ }}>
                   <option>Newest First</option>
                   <option>Oldest First</option>
                 </select>
@@ -306,40 +315,105 @@ export default function AdviserApprovalsPage() {
         </div>
       </div>
 
-      <Modal open={showReview} onClose={() => setShowReview(false)} title={selectedItem ? `Review ${selectedItem.type}` : 'Review'}>
+      <Modal open={showReview} onClose={() => setShowReview(false)} title={selectedItem ? `Review ${selectedItem.type === 'project' ? 'Project' : selectedItem.type === 'ledger' ? 'Ledger Entry' : selectedItem.type === 'proof' ? 'Proof' : 'Meeting'}` : 'Review'}>
         {selectedItem && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">ID</p>
-                <p className="font-mono text-gray-900">{selectedItem.id}</p>
+          <div className="space-y-6 pt-4">
+            {/* Info banner */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex gap-3">
+              <div className="flex-shrink-0">
+                <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
               </div>
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Type</p>
-                <div className="text-sm text-gray-700">{selectedItem.type}</div>
-              </div>
-              <div className="col-span-2">
-                <p className="text-sm text-gray-600 mb-1">Title</p>
-                <p className="text-gray-900">{selectedItem.title}</p>
-              </div>
+              <p className="text-sm text-blue-800">This action will update the immutable ledger</p>
             </div>
 
-            <div className="flex gap-3 pt-4">
-              <Button variant="outline" className="flex-1 rounded-xl" onClick={() => setShowReview(false)}>Cancel</Button>
-              <Button variant="outline" className="flex-1 rounded-xl text-red-600" onClick={() => { setShowReview(false); setShowReject(true); }}>Reject</Button>
-              <Button className="text-white flex-1 rounded-xl bg-green-600 hover:bg-green-700" onClick={() => handleApprove(selectedItem)}>Approve</Button>
+            {/* Content Grid */}
+            <div className="space-y-4 pt-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs text-gray-600 block mb-1">ID</label>
+                  <p className="text-sm font-semibold text-gray-900">{selectedItem.id}</p>
+                </div>
+                <div>
+                  <label className="text-xs text-gray-600 block mb-1">Type</label>
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-800">
+                    {selectedItem.type === 'project' ? 'Project' : selectedItem.type === 'ledger' ? 'Ledger' : selectedItem.type === 'proof' ? 'Proof' : 'Meeting'}
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs text-gray-600 block mb-1">Title</label>
+                <p className="text-sm text-gray-900">{selectedItem.title}</p>
+              </div>
+
+              {selectedItem.submittedBy && (
+                <div>
+                  <label className="text-xs text-gray-600 block mb-1">Submitted By</label>
+                  <p className="text-sm text-gray-900">{selectedItem.submittedBy}</p>
+                </div>
+              )}
+
+              {selectedItem.submittedDate && (
+                <div>
+                  <label className="text-xs text-gray-600 block mb-1">Date</label>
+                  <p className="text-sm text-gray-900">{selectedItem.submittedDate}</p>
+                </div>
+              )}
+
+              {selectedItem.amount && (
+                <div>
+                  <label className="text-xs text-gray-600 block mb-1">Amount</label>
+                  <p className="text-sm font-semibold text-gray-900">₱{selectedItem.amount.toLocaleString()}</p>
+                </div>
+              )}
+
+              {selectedItem.category && (
+                <div>
+                  <label className="text-xs text-gray-600 block mb-1">Category</label>
+                  <p className="text-sm text-gray-900">{selectedItem.category}</p>
+                </div>
+              )}
+
+              {selectedItem.project && (
+                <div>
+                  <label className="text-xs text-gray-600 block mb-1">Project</label>
+                  <p className="text-sm text-gray-900">{selectedItem.project}</p>
+                </div>
+              )}
+
+              {selectedItem.hash && (
+                <div>
+                  <label className="text-xs text-gray-600 block mb-1">Hash</label>
+                  <p className="text-xs font-mono text-gray-600 truncate">{selectedItem.hash}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3 pt-2 border-t">
+              <Button variant="outline" className="flex-1 rounded-xl" onClick={() => setShowReview(false)}>
+                Cancel
+              </Button>
+              <Button variant="outline" className="flex-1 rounded-xl text-red-600 hover:bg-red-50" onClick={() => { setShowReview(false); setShowReject(true); }}>
+                Reject
+              </Button>
+              <Button className="text-white flex-1 rounded-xl bg-green-600 hover:bg-green-700" onClick={() => { handleApprove(selectedItem); setShowReview(false); }}>
+                Approve
+              </Button>
             </div>
           </div>
         )}
       </Modal>
 
       <Modal open={showReject} onClose={() => setShowReject(false)} title="Reject Submission">
-        <div className="space-y-4">
+        <div className="space-y-4 pt-4">
           <p className="text-sm text-gray-600">Please provide a reason for rejecting this submission.</p>
-          <textarea value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} rows={4} className="w-full rounded-xl border px-3 py-2" />
+          <textarea value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} rows={4} className="w-full rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:border-gray-300 focus:ring-2 focus:ring-gray-200 outline-none transition" />
           <div className="flex gap-3">
             <Button variant="outline" className="flex-1 rounded-xl" onClick={() => { setShowReject(false); setRejectReason(''); }}>Cancel</Button>
-            <Button className="flex-1 rounded-xl bg-red-600 hover:bg-red-700" onClick={handleReject}>Confirm Rejection</Button>
+            <Button className="text-white flex-1 rounded-xl bg-red-600 hover:bg-red-700" onClick={handleReject}>Confirm Rejection</Button>
           </div>
         </div>
       </Modal>

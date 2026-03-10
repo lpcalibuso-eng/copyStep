@@ -1,4 +1,5 @@
 import React from 'react';
+import { Inertia } from '@inertiajs/inertia';
 import { Card } from '../../Components/ui/card';
 import { CheckSquare, Clock, AlertCircle, TrendingUp, FileText, CheckCircle2 } from 'lucide-react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
@@ -82,7 +83,7 @@ export function AdminAdviserDashboard({ currentView, onNavigate }) {
 
   // Default dashboard view
   return (
-    <div className="space-y-6 max-w-7xl mx-auto px-4">
+    <div className="space-y-6 max-w-7xl mx-auto">
       <div>
         <h1 className="text-gray-900 text-2xl font-semibold">Admin/Adviser Dashboard</h1>
         <p className="text-gray-500">Approvals, verification, and oversight</p>
@@ -98,7 +99,7 @@ export function AdminAdviserDashboard({ currentView, onNavigate }) {
       <Card className="p-6 rounded-2xl border-0 shadow-sm bg-white">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-gray-900">Pending Approvals</h2>
-          <button onClick={() => onNavigate && onNavigate('approvals')} className="text-sm text-[#2563EB] hover:underline">View All</button>
+          <button onClick={() => Inertia.visit('/adviser/approvals')} className="text-sm text-[#2563EB] hover:underline">View All</button>
         </div>
 
         <div className="space-y-3">
@@ -132,17 +133,17 @@ export function AdminAdviserDashboard({ currentView, onNavigate }) {
         <Card className="p-6 rounded-2xl border-0 shadow-sm bg-white">
           <h2 className="text-gray-900 mb-4">Quick Actions</h2>
           <div className="space-y-2">
-            <button onClick={() => onNavigate && onNavigate('ledger-verification')} className="w-full flex items-center justify-between p-3 bg-white rounded-lg border border-gray-100 shadow-sm transition-colors text-left">
+            <button onClick={() => Inertia.visit('/adviser/ledger')} className="w-full flex items-center justify-between p-3 bg-white rounded-lg border border-gray-100 shadow-sm transition-colors text-left">
               <div className="flex items-center gap-3"><CheckSquare className="w-5 h-5 text-[#2563EB]" /><span className="text-sm text-gray-900">Verify Ledger Entries</span></div>
               <Badge variant="secondary">5</Badge>
             </button>
 
-            <button onClick={() => onNavigate && onNavigate('project-verification')} className="w-full flex items-center justify-between p-3 bg-white rounded-lg border border-gray-100 shadow-sm transition-colors text-left">
+            <button onClick={() => Inertia.visit('/adviser/approvals')} className="w-full flex items-center justify-between p-3 bg-white rounded-lg border border-gray-100 shadow-sm transition-colors text-left">
               <div className="flex items-center gap-3"><CheckSquare className="w-5 h-5 text-[#2563EB]" /><span className="text-sm text-gray-900">Approve Projects</span></div>
               <Badge variant="secondary">2</Badge>
             </button>
 
-            <button onClick={() => onNavigate && onNavigate('meeting-minutes')} className="w-full flex items-center justify-between p-3 bg-white rounded-lg border border-gray-100 shadow-sm transition-colors text-left">
+            <button onClick={() => Inertia.visit('/adviser/approvals?tab=meetings')} className="w-full flex items-center justify-between p-3 bg-white rounded-lg border border-gray-100 shadow-sm transition-colors text-left">
               <div className="flex items-center gap-3"><CheckSquare className="w-5 h-5 text-[#2563EB]" /><span className="text-sm text-gray-900">Review Meeting Minutes</span></div>
               <Badge variant="secondary">1</Badge>
             </button>
@@ -172,7 +173,7 @@ export default function AdviserDashboardPage(props) {
     <AuthenticatedLayout header={<h2 className="text-xl font-semibold leading-tight text-gray-800">Admin/Adviser Dashboard</h2>}>
       <Head title="Adviser" />
 
-      <div className="py-6">
+      <div className="py-8">
         <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
           <AdminAdviserDashboard {...props} />
         </div>
