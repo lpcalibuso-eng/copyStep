@@ -35,6 +35,10 @@ Route::get('/adviser/ledger', function () {
     return Inertia::render('Adviser/Ledger');
 })->name('adviser.ledger');
 
+Route::get('/adviser/permission', function () {
+    return Inertia::render('Adviser/Permission');
+})->name('adviser.permission');
+
 Route::get('/csg', function () {
     return Inertia::render('CSG/Dashboard');
 })->name('csg.dashboard');
