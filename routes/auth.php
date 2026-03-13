@@ -9,6 +9,8 @@ use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\VerifyEmailController;
+use App\Http\Controllers\Auth\OAuthController;
+use App\Http\Controllers\Auth\CompleteProfileController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
@@ -33,9 +35,24 @@ Route::middleware('guest')->group(function () {
 
     Route::post('reset-password', [NewPasswordController::class, 'store'])
         ->name('password.store');
+
+    // OAuth callback route
+    Route::get('callback', [OAuthController::class, 'callback'])
+        ->name('auth.callback');
+
+    // OAuth store route - receives user data from frontend after OAuth
+    Route::post('oauth/store', [OAuthController::class, 'store'])
+        ->name('oauth.store');
 });
 
 Route::middleware('auth')->group(function () {
+    // Complete profile after OAuth
+    Route::get('complete-profile', [CompleteProfileController::class, 'show'])
+        ->name('profile.complete');
+
+    Route::post('complete-profile', [CompleteProfileController::class, 'store'])
+        ->name('profile.store');
+
     Route::get('verify-email', EmailVerificationPromptController::class)
         ->name('verification.notice');
 
