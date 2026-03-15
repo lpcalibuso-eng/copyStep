@@ -1,23 +1,23 @@
-Stage the specific file:
-git add <path/to/file>
+1. Stage the specific file:
+git add "[file path]"
+
 example:
 git add "/opt/lampp/htdocs/Prototype System/Step/kldstep/resources/js/Pages/Adviser/Permission.jsx"
 
-Commit the staged change:
-git commit -m "Your commit message" 
+Noted: Gawin mo para madali right click mo yung file or kaya yung folder na gusto mong i-push tas click mo yung "copy path" tas paste mo sa loob ng double quote
 
-1. Commit the File
-Command: git commit -m "Your descriptive message" 
+2. Commit the File:
+git commit -m "Message mo(kahit ano pero sabihin mo ano update dito)" 
 
-2. Verify the Remote Connection
-Command: git remote -v
-Expected Output: You should see a name like origin followed by your GitHub or GitLab URL. 
+3. Verify the Remote Connection:
+git remote -v
 
-3. Push to the Remote Repository 
+4. Push to the Remote Repository:
+git push origin <your-branch-name>
 
-Command: git push origin <your-branch-name>
+branch naten:
+    main
+    my new feature
 
-
-Shortcut Tip
-If you want to push whatever branch you are currently on without typing the name, you can use:
-Command: git push origin HEAD
+    Recommend ko ito para mas madali ang push:
+    git push origin HEAD
