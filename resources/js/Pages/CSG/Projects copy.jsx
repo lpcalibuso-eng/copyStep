@@ -112,9 +112,9 @@ const initialProjects = [
     title: 'Annual Sports Fest',
     category: 'Sports',
     description: 'Annual inter-department sports competition with multiple events and activities.',
-    status: '',
-    approvalStatus: 'Pending Adviser Approval',
-    progress: 0,
+    status: 'Ongoing',
+    approvalStatus: 'Approved',
+    progress: 45,
     budget: 75000,
     startDate: '2025-01-05',
     endDate: '2025-01-20',
@@ -125,9 +125,9 @@ const initialProjects = [
     title: 'Campus Sustainability Initiative',
     category: 'Environmental',
     description: 'Green campus initiative focusing on waste reduction and renewable energy.',
-    status: '',
-    approvalStatus:'Rejected',
-    progress: 0,
+    status: 'Completed',
+    approvalStatus:'Pending Adviser Approval',
+    progress: 90,
     budget: 40000,
     startDate: '2024-10-15',
     endDate: '2024-11-30',
@@ -141,7 +141,6 @@ function CSGProjectsPageInner() {
   const [selectedProjectId, setSelectedProjectId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
-  const [filterApprovalStatus, setFilterApprovalStatus] = useState('all');
 
   // Budget breakdown state
   const [budgetItems, setBudgetItems] = useState([
@@ -261,8 +260,7 @@ function CSGProjectsPageInner() {
       project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       project.description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = filterStatus === 'all' || project.status === filterStatus;
-    const matchesApprovalStatus = filterApprovalStatus === 'all' || project.approvalStatus === filterApprovalStatus;
-    return matchesSearch && matchesStatus && matchesApprovalStatus;
+    return matchesSearch && matchesStatus;
   });
 
   const getStatusColor = (status) => {
@@ -324,33 +322,6 @@ function CSGProjectsPageInner() {
       />
     );
   }
-
-  const getProjectButton = (project) => {
-  switch (project.approvalStatus) {
-    case 'Approved':
-      return <Button  
-       onClick={() => setSelectedProjectId(project.id)}
-      className="w-full rounded-xl bg-blue-600 hover:bg-blue-700 text-white">
-          <FolderOpen className="w-4 h-4 mr-2" />
-          Open Project</Button>;
-    case 'Pending Adviser Approval':
-      return <Button 
-       onClick={() => setSelectedProjectId(project.id)}
-      className="w-full rounded-xl bg-yellow-600 hover:bg-yellow-700 text-white">
-          <FolderOpen className="w-4 h-4 mr-2" />
-          Open Project</Button>;
-    case 'Rejected':
-      return <Button 
-       onClick={() => setSelectedProjectId(project.id)}className="w-full rounded-xl bg-gray-600 hover:bg-gray-700 text-white">
-          <FolderOpen className="w-4 h-4 mr-2" />
-          Edit Project</Button>;
-    default:
-      return <Button 
-       onClick={() => setSelectedProjectId(project.id)}className="w-full rounded-xl bg-gray-600 hover:bg-gray-700 text-white">
-          <FolderOpen className="w-4 h-4 mr-2" />
-           Edit Project</Button>;
-  }
-};
 
   return (
     <div className="space-y-6">
@@ -442,19 +413,12 @@ function CSGProjectsPageInner() {
           </div>
           <div className="w-full md:w-48">
             <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <option value="all" disabled>Project Status</option>
-              <option value="all">All Projects</option>
-              <option value="Ongoing">Ongoing</option>
-              <option value="Completed">Completed</option>
-            </Select>
-          </div>
-          <div className="w-full md:w-48">
-            <Select value={filterApprovalStatus} onValueChange={setFilterApprovalStatus}>
-              <option value="all" disabled>All Approval Status</option>
-               <option value="all">All Projects</option>
+              <option value="all">All Status</option>
               <option value="Draft">Draft</option>
               <option value="Pending Adviser Approval">Pending Approval</option>
               <option value="Approved">Approved</option>
+              <option value="Ongoing">Ongoing</option>
+              <option value="Completed">Completed</option>
             </Select>
           </div>
         </div>
@@ -469,49 +433,84 @@ function CSGProjectsPageInner() {
 
       {/* Projects Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-       {filteredProjects.map((project) => (
-  <Card key={project.id} className="rounded-[20px] border-0 shadow-sm p-6 hover:shadow-md transition-all">
-    {/* Header */}
-    <div className="mb-4">
-      <div className="flex items-start justify-between mb-2">
-        <h3 className="font-semibold text-gray-900 flex-1">{project.title}</h3>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        <Badge className="bg-gray-100 text-gray-700 rounded-lg">{project.category}</Badge>
-        <Badge className={`rounded-lg ${getApprovalStatusColor(project.approvalStatus)}`}>
-          {project.approvalStatus}
-        </Badge>
-      </div>
-    </div>
+        {filteredProjects.map((project) => (
+          <Card key={project.id} className="rounded-[20px] border-0 shadow-sm p-6 hover:shadow-md transition-all">
+            {/* <div className='w-full h-[50px] bg-gradient-to-r from-blue-600 to-blue-800' ></div> */}
+            {/* Header */}
+            <div className="mb-4">
+              <div className="flex items-start justify-between mb-2">
+                <h3 className="font-semibold text-gray-900 flex-1">{project.title}</h3>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Badge className="bg-gray-100 text-gray-700 rounded-lg">{project.category}</Badge>
+                <Badge className={`rounded-lg ${getApprovalStatusColor(project.approvalStatus)}`}>
+                  {project.approvalStatus}
+                </Badge>
+              </div>
+            </div>
 
-    {/* Description */}
-    <p className="text-sm text-gray-600 mb-4 line-clamp-2">{project.description}</p>
+            {/* Description */}
+            <p className="text-sm text-gray-600 mb-4 line-clamp-2">{project.description}</p>
 
-    {/* Progress */}
-    <div className="mb-4">
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-500">Progress</span>
-          <Badge className={`rounded-lg ${getStatusColor(project.status)}`}>
-            {project.status}
-          </Badge>
-        </div>
-        <span className="text-xs font-medium text-gray-900">{project.progress}%</span>
-      </div>
-      <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-        <div
-          className="h-full bg-blue-600 rounded-full transition-all"
-          style={{ width: `${project.progress}%` }}
-        />
-      </div>
-    </div>
+            {/* Progress */}
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-2">
+               <div className="flex items-center gap-2">
+                 <span className="text-xs text-gray-500">Progress</span>
+                  <Badge className={`rounded-lg ${getStatusColor(project.status)}`}>
+                  {project.status}
+                </Badge>
+               </div>
+                <span className="text-xs font-medium text-gray-900">{project.progress}%</span>
+              </div>
+              <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-blue-600 rounded-full transition-all"
+                  style={{ width: `${project.progress}%` }}
+                />
+              </div>
+            </div>
 
-    {/* Action Buttons */}
-   
-    {getProjectButton(project)}
-    
-  </Card>
-))}
+            {/* Budget */}
+            {/* <div className="flex items-center gap-2 mb-4 text-sm text-gray-600">
+              <DollarSign className="w-4 h-4 text-gray-400" />
+              <span>Budget: ₱{project.budget?.toLocaleString() || 0}</span>
+            </div> */}
+
+            {/* Action Buttons */}
+            <div className="space-y-2">
+              <Button
+                onClick={() => setSelectedProjectId(project.id)}
+                className="w-full rounded-xl bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <FolderOpen className="w-4 h-4 mr-2" />
+                Open Project
+              </Button>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSelectedProjectId(project.id);
+                  }}
+                  className="rounded-xl"
+                >
+                  <DollarSign className="w-4 h-4 mr-1" />
+                  Ledger
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSelectedProjectId(project.id);
+                  }}
+                  className="rounded-xl"
+                >
+                  <FileText className="w-4 h-4 mr-1" />
+                  Proof
+                </Button>
+              </div>
+            </div>
+          </Card>
+        ))}
       </div>
 
       {/* Empty State */}

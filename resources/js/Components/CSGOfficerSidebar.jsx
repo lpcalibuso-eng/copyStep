@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Inertia } from '@inertiajs/inertia';
+import { usePage, router } from '@inertiajs/react';
 import { 
   LayoutDashboard, 
   FolderKanban, 
@@ -25,9 +27,11 @@ import {
   DialogTitle,
 } from '@/Components/ui/dialog';
 
-export function CSGOfficerSidebar({ currentView, onNavigate, onLogout, onSwitchRole, userData, isSwitchedView }) {
+export default function CSGOfficerSidebar({ currentView = null, onNavigate = null, onLogout = null, onSwitchRole = null, userData = null, isSwitchedView = null }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isOnlineModalOpen, setIsOnlineModalOpen] = useState(false);
+
+  const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
   // Mock online CSG officers data
   const onlineOfficers = [
@@ -51,6 +55,33 @@ export function CSGOfficerSidebar({ currentView, onNavigate, onLogout, onSwitchR
     { id: 'profile', label: 'Profile', icon: User },
   ];
 
+  // Derive active view from pathname when parent doesn't provide `currentView`
+  function getViewFromPath() {
+    if (typeof window === 'undefined') return 'dashboard';
+    const p = window.location.pathname;
+    if (p.startsWith('/csg/projects')) return 'projects';
+    if (p.startsWith('/csg/ledger')) return 'ledger';
+    if (p.startsWith('/csg/proof')) return 'proof';
+    if (p.startsWith('/csg/meetings')) return 'meetings';
+    if (p.startsWith('/csg/ratings')) return 'ratings';
+    if (p.startsWith('/csg/performance-panel')) return 'performance-panel';
+    if (p.startsWith('/csg/profile')) return 'profile';
+    if (p === '/csg' || p.startsWith('/csg')) return 'dashboard';
+    return 'dashboard';
+  }
+
+  const initialSelected = currentView || getViewFromPath();
+  const [selectedView, setSelectedView] = useState(initialSelected);
+
+  // Keep selectedView in sync when Inertia's page URL changes or browser history changes
+  const { url } = usePage();
+  useEffect(() => {
+    setSelectedView(getViewFromPath());
+    const onPop = () => setSelectedView(getViewFromPath());
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, [url]);
+
   // Quick actions for mobile bottom bar
   const quickActions = [
     { icon: Plus, label: 'New Project', color: 'bg-green-600' },
@@ -68,13 +99,15 @@ export function CSGOfficerSidebar({ currentView, onNavigate, onLogout, onSwitchR
           {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
-            <span className="text-white text-sm">S</span>
+          <div className="w-8 h-8 overflow-hidden">
+            <img src="/images/Logo.png" alt="Step Logo" className="w-full h-full object-cover" />
           </div>
-          <span className="text-green-600">STEP</span>
+          <div className="w-10">
+            <img src="/images/step_dark.png" alt="STEP" className="w-full object-cover" />
+          </div>
         </div>
         <Avatar className="w-8 h-8">
-          <AvatarFallback className="bg-green-600 text-white text-xs">CO</AvatarFallback>
+          <AvatarFallback className="bg-gradient-to-r from-blue-600 to-blue-800 text-white shadow-md text-xs">CO</AvatarFallback>
         </Avatar>
       </div>
 
@@ -112,11 +145,13 @@ export function CSGOfficerSidebar({ currentView, onNavigate, onLogout, onSwitchR
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-green-600 rounded-xl flex items-center justify-center">
-                <span className="text-white">S</span>
+              <div className="w-10 h-10 overflow-hidden">
+                <img src="/images/Logo.png" alt="Step Logo" className="w-full h-full object-cover" />
               </div>
               <div className="flex-1">
-                <h1 className="text-green-600">STEP</h1>
+                <div className="w-10">
+                  <img src="/images/step_dark.png" alt="STEP" className="w-full object-cover" />
+                </div>
                 <p className="text-xs text-gray-500">CSG Officer</p>
               </div>
             </div>
@@ -134,16 +169,16 @@ export function CSGOfficerSidebar({ currentView, onNavigate, onLogout, onSwitchR
               
               {/* Stacked Avatars */}
               <div className="flex items-center -space-x-1.5">
-                {onlineOfficers.filter(o => o.status === 'online').slice(0, 3).map((officer) => (
+                {onlineOfficers.filter(o => o.status === 'online').slice(0, 1).map((officer) => (
                   <Avatar key={officer.id} className="w-6 h-6 border-2 border-white ring-1 ring-green-200">
                     <AvatarFallback className="bg-green-600 text-white text-[9px]">
                       {officer.avatar}
                     </AvatarFallback>
                   </Avatar>
                 ))}
-                {onlineCount > 3 && (
+                {onlineCount > 1 && (
                   <div className="w-6 h-6 rounded-full bg-green-600 border-2 border-white ring-1 ring-green-200 flex items-center justify-center">
-                    <span className="text-white text-[9px] font-medium">+{onlineCount - 3}</span>
+                    <span className="text-white text-[9px] font-medium">+{onlineCount - 1}</span>
                   </div>
                 )}
               </div>
@@ -159,18 +194,32 @@ export function CSGOfficerSidebar({ currentView, onNavigate, onLogout, onSwitchR
           <ul className="space-y-2">
             {navItems.map((item) => {
               const Icon = item.icon;
-              const isActive = currentView === item.id;
+              const isActive = (currentView ? currentView === item.id : selectedView === item.id);
               return (
                 <li key={item.id}>
                   <button
                     onClick={() => {
-                      onNavigate(item.id);
-                      setIsMobileMenuOpen(false);
+                      setSelectedView(item.id);
+                      if (typeof onNavigate === 'function') return onNavigate(item.id);
+                      // Navigate via Inertia to the appropriate CSG route
+                      const map = {
+                        dashboard: '/csg',
+                        projects: '/csg/projects',
+                        ledger: '/csg/ledger',
+                        proof: '/csg/proof',
+                        meetings: '/csg/meetings',
+                        ratings: '/csg/ratings',
+                        'performance-panel': '/csg/performance-panel',
+                        profile: '/csg/profile',
+                      };
+                      const url = map[item.id] || '/csg';
+                      router.visit(url);
+                      return null;
                     }}
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
                       isActive 
-                        ? 'bg-green-600 text-white shadow-md' 
-                        : 'text-gray-600 hover:bg-green-50'
+                        ? 'bg-gradient-to-r from-blue-600 to-blue-800 text-white shadow-md' 
+                        : 'text-gray-600 hover:bg-blue-50'
                     }`}
                   >
                     <Icon className="w-5 h-5" />
@@ -201,13 +250,16 @@ export function CSGOfficerSidebar({ currentView, onNavigate, onLogout, onSwitchR
             </div>
           )}
           
-          <button
-            onClick={onLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-xl transition-all"
-          >
-            <LogOut className="w-5 h-5" />
-            <span>Logout</span>
-          </button>
+          <form method="POST" action="/logout" className="w-full">
+            <input type="hidden" name="_token" value={csrfToken} />
+            <button
+              type="submit"
+              className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-xl transition-all"
+            >
+              <LogOut className="w-5 h-5" />
+              <span>Logout</span>
+            </button>
+          </form>
         </div>
       </aside>
 
@@ -217,11 +269,13 @@ export function CSGOfficerSidebar({ currentView, onNavigate, onLogout, onSwitchR
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-green-600 rounded-xl flex items-center justify-center">
-                <span className="text-white">S</span>
+              <div className="w-10 h-10 overflow-hidden">
+                <img src="/images/Logo.png" alt="Step Logo" className="w-full object-cover" />
               </div>
               <div>
-                <h1 className="text-green-600">STEP</h1>
+                <div className="w-10">
+                  <img src="/images/step_dark.png" alt="STEP" className="w-full object-cover" />
+                </div>
                 <p className="text-xs text-gray-500">CSG Officer</p>
               </div>
             </div>
@@ -239,16 +293,16 @@ export function CSGOfficerSidebar({ currentView, onNavigate, onLogout, onSwitchR
               
               {/* Stacked Avatars */}
               <div className="flex items-center -space-x-1.5">
-                {onlineOfficers.filter(o => o.status === 'online').slice(0, 3).map((officer) => (
+                {onlineOfficers.filter(o => o.status === 'online').slice(0, 1).map((officer) => (
                   <Avatar key={officer.id} className="w-6 h-6 border-2 border-white ring-1 ring-green-200">
                     <AvatarFallback className="bg-green-600 text-white text-[9px]">
                       {officer.avatar}
                     </AvatarFallback>
                   </Avatar>
                 ))}
-                {onlineCount > 3 && (
+                {onlineCount > 1 && (
                   <div className="w-6 h-6 rounded-full bg-green-600 border-2 border-white ring-1 ring-green-200 flex items-center justify-center">
-                    <span className="text-white text-[9px] font-medium">+{onlineCount - 3}</span>
+                    <span className="text-white text-[9px] font-medium">+{onlineCount - 1}</span>
                   </div>
                 )}
               </div>
@@ -264,15 +318,32 @@ export function CSGOfficerSidebar({ currentView, onNavigate, onLogout, onSwitchR
           <ul className="space-y-2">
             {navItems.map((item) => {
               const Icon = item.icon;
-              const isActive = currentView === item.id;
+              const isActive = (currentView ? currentView === item.id : selectedView === item.id);
               return (
                 <li key={item.id}>
                   <button
-                    onClick={() => onNavigate(item.id)}
+                    onClick={() => {
+                      setSelectedView(item.id);
+                      if (typeof onNavigate === 'function') return onNavigate(item.id);
+                      // Navigate via Inertia to the appropriate CSG route
+                      const map = {
+                        dashboard: '/csg',
+                        projects: '/csg/projects',
+                        ledger: '/csg/ledger',
+                        proof: '/csg/proof',
+                        meetings: '/csg/meetings',
+                        ratings: '/csg/ratings',
+                        'performance-panel': '/csg/performance-panel',
+                        profile: '/csg/profile',
+                      };
+                      const url = map[item.id] || '/csg';
+                      router.visit(url);
+                      return null;
+                    }}
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
                       isActive 
-                        ? 'bg-green-600 text-white shadow-md' 
-                        : 'text-gray-600 hover:bg-green-50'
+                        ? 'bg-gradient-to-r from-blue-600 to-blue-800 text-white shadow-md' 
+                        : 'text-gray-600 hover:bg-blue-50'
                     }`}
                   >
                     <Icon className="w-5 h-5" />
@@ -302,20 +373,23 @@ export function CSGOfficerSidebar({ currentView, onNavigate, onLogout, onSwitchR
           
           <div className="flex items-center gap-3 px-4 py-2">
             <Avatar className="w-8 h-8">
-              <AvatarFallback className="bg-green-600 text-white text-xs">CO</AvatarFallback>
+              <AvatarFallback className="bg-gradient-to-r from-blue-600 to-blue-800 text-white shadow-md text-white text-xs">CO</AvatarFallback>
             </Avatar>
             <div className="flex-1">
               <p className="text-sm text-gray-900">CSG Officer</p>
               <p className="text-xs text-gray-500">officer@step.edu</p>
             </div>
           </div>
-          <button
-            onClick={onLogout}
-            className="w-full flex items-center gap-3 px-4 py-2 text-red-600 hover:bg-red-50 rounded-xl transition-all"
-          >
-            <LogOut className="w-4 h-4" />
-            <span className="text-sm">Logout</span>
-          </button>
+          <form method="POST" action="/logout" className="w-full">
+            <input type="hidden" name="_token" value={csrfToken} />
+            <button
+              type="submit"
+              className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-xl transition-all"
+            >
+              <LogOut className="w-5 h-5" />
+              <span>Logout</span>
+            </button>
+          </form>
         </div>
       </aside>
 
@@ -323,10 +397,20 @@ export function CSGOfficerSidebar({ currentView, onNavigate, onLogout, onSwitchR
       <Dialog open={isOnlineModalOpen} onOpenChange={setIsOnlineModalOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Users className="w-5 h-5 text-green-600" />
-              CSG Officers Status
-            </DialogTitle>
+            <div className="flex items-start justify-between gap-4">
+              <DialogTitle className="flex items-center gap-2">
+                <Users className="w-5 h-5 text-blue-600" />
+                CSG Officers Status
+              </DialogTitle>
+              <button
+                type="button"
+                onClick={() => setIsOnlineModalOpen(false)}
+                className="rounded-full p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition"
+                aria-label="Close"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </DialogHeader>
           
           <div className="space-y-1">
@@ -336,11 +420,11 @@ export function CSGOfficerSidebar({ currentView, onNavigate, onLogout, onSwitchR
               {onlineOfficers.filter(o => o.status === 'online').map((officer) => (
                 <div 
                   key={officer.id} 
-                  className="flex items-center gap-3 p-3 hover:bg-green-50 rounded-xl transition-colors"
+                  className="flex items-center gap-3 p-3 hover:bg-blue-50 rounded-xl transition-colors"
                 >
                   <div className="relative">
                     <Avatar className="w-10 h-10">
-                      <AvatarFallback className="bg-green-600 text-white text-xs">
+                      <AvatarFallback className="bg-blue-600 text-white text-xs">
                         {officer.avatar}
                       </AvatarFallback>
                     </Avatar>

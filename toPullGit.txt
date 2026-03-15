@@ -1,0 +1,34 @@
+Steps to pull from GitHub using the VS Code terminal
+
+
+1. Open VS Code and ensure your current folder is the local Git repository you want to update.
+
+2. Open the integrated terminal by navigating to the top menu: Terminal > New Terminal.
+
+3. In the terminal, ensure you are on the correct branch (e.g., main or master) you intend to pull changes into. You can check your current branch by using the command:
+git branch
+
+4. Switch to the desired branch if necessary using:
+git checkout [branch-name]
+Noted: Ang branch naten ay
+    main
+    my new feature
+
+5. Pull the latest changes from the remote repository (by default named origin) and current branch using one of the following commands:
+
+    I. Simple pull:
+    git pull
+    (pull lahat)
+
+    II. Specify remote and branch:
+    git pull origin [specific branch mo]
+    (pili lang na pull)
+
+
+
+1. Kukunin yung latest data galing Github:
+    git fetch origin
+
+2. Pull lang yung specific file or folder na gusto mo
+    Ex.
+    git checkout origin/main -- "C:\xampp\htdocs\PROJECTS\STEP\resources\js\Components\AdminAdviserSidebar.jsx"

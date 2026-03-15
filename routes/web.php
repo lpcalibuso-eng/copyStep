@@ -97,9 +97,38 @@ Route::get('/adviser/profile', function () {
     return Inertia::render('Adviser/Profile');
 })->name('adviser.profile');
 
+// CSG routes
 Route::get('/csg', function () {
     return Inertia::render('CSG/Dashboard');
 })->name('csg.dashboard');
+
+Route::get('/csg/projects', function () {
+    return Inertia::render('CSG/Projects');
+})->name('csg.projects');
+
+Route::get('/csg/ledger', function () {
+    return Inertia::render('CSG/Ledger');
+})->name('csg.ledger');
+
+Route::get('/csg/proof', function () {
+    return Inertia::render('CSG/Proof');
+})->name('csg.proof');
+
+Route::get('/csg/meetings', function () {
+    return Inertia::render('CSG/Meetings');
+})->name('csg.meetings');
+
+Route::get('/csg/ratings', function () {
+    return Inertia::render('CSG/Ratings');
+})->name('csg.ratings');
+
+Route::get('/csg/performance-panel', function () {
+    return Inertia::render('CSG/PerformancePanel');
+})->name('csg.performance-panel');
+
+Route::get('/csg/profile', function () {
+    return Inertia::render('CSG/Profile');
+})->name('csg.profile');
 
 Route::get('/user', function () {
     return Inertia::render('User/Dashboard');
@@ -112,3 +141,9 @@ Route::middleware('auth')->group(function () {
 });
 
 require __DIR__.'/auth.php';
+
+// Logout route
+Route::post('/logout', function () {
+    auth()->logout();
+    return redirect('/');
+})->name('logout');
