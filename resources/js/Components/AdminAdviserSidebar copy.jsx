@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Inertia } from '@inertiajs/inertia';
-import { usePage, router } from '@inertiajs/react';
+import { usePage } from '@inertiajs/react';
 import {
   LayoutDashboard,
   CheckSquare,
@@ -142,7 +142,7 @@ export default function AdminAdviserSidebar({ currentView = null, onNavigate = n
                             profile: '/adviser/profile',
                           };
                           const url = map[item.id] || '/adviser';
-                          router.visit(url);
+                          Inertia.visit(url);
                           return null;
                         }}
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
@@ -214,7 +214,7 @@ export default function AdminAdviserSidebar({ currentView = null, onNavigate = n
                         profile: '/adviser/profile',  
                       };
                       const url = map[item.id] || '/adviser';
-                      router.visit(url);
+                      Inertia.visit(url);
                       return null;
                     }}
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
