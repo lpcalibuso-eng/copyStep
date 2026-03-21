@@ -11,6 +11,15 @@ export default function StudentProjectDetails({ projectId, onBack, project }) {
   const [hoveredRating, setHoveredRating] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
+  const [selectedLedgerEntry, setSelectedLedgerEntry] = useState(null);
+  const [selectedProofDocument, setSelectedProofDocument] = useState(null);
+  const [showAllComments, setShowAllComments] = useState(false);
+
+  const getProofUrl = (path) => {
+    if (!path) return '#';
+    if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('/')) return path;
+    return `/${path}`;
+  };
 
   const handleSubmitRating = async () => {
     if (!rating) return;
@@ -146,7 +155,23 @@ export default function StudentProjectDetails({ projectId, onBack, project }) {
       {activeTab === 'overview' && (
         <Card className="rounded-[20px] border-0 shadow-sm p-6 bg-gradient-to-br from-white to-blue-50">
           <h2 className="text-xl font-bold text-gray-900 mb-4">Overview</h2>
-          <p className="text-gray-700 leading-relaxed">{project.description || 'No description available.'}</p>
+          <div className="rounded-2xl border border-blue-100 bg-white p-4 md:p-5">
+            <p className="text-gray-700 leading-relaxed">{project.description || 'No description available.'}</p>
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="rounded-xl bg-blue-50 border border-blue-100 p-3">
+                <p className="text-xs text-gray-500">Timeline</p>
+                <p className="text-sm font-semibold text-gray-900 mt-1">{project.startDate || 'TBD'} to {project.endDate || 'TBD'}</p>
+              </div>
+              <div className="rounded-xl bg-blue-50 border border-blue-100 p-3">
+                <p className="text-xs text-gray-500">Category</p>
+                <p className="text-sm font-semibold text-gray-900 mt-1">{project.category || 'General'}</p>
+              </div>
+              <div className="rounded-xl bg-blue-50 border border-blue-100 p-3">
+                <p className="text-xs text-gray-500">Engagement</p>
+                <p className="text-sm font-semibold text-gray-900 mt-1">{project.ratingsCount || 0} community ratings</p>
+              </div>
+            </div>
+          </div>
           <div className="mt-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="rounded-xl p-4 bg-white border border-blue-100">
               <p className="text-xs text-gray-500">Status</p>
@@ -173,11 +198,12 @@ export default function StudentProjectDetails({ projectId, onBack, project }) {
           <h2 className="text-xl font-bold text-gray-900 mb-4">Ledger</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {(project.ledgerEntries || []).map((entry) => (
-              <div
+              <button
                 key={entry.id}
+                onClick={() => setSelectedLedgerEntry(entry)}
                 className={`rounded-xl border p-4 ${
                   entry.type === 'Income' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
-                }`}
+                } text-left hover:shadow-md transition-shadow`}
               >
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <div>
@@ -197,7 +223,7 @@ export default function StudentProjectDetails({ projectId, onBack, project }) {
                   <span className="px-2 py-1 rounded-md bg-white text-gray-700 border">{entry.approvalStatus}</span>
                   <span className="text-gray-600">{entry.createdAt || '-'}</span>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
           {!project.ledgerEntries?.length && <p className="text-gray-500 mt-3">No ledger entries yet.</p>}
@@ -209,7 +235,11 @@ export default function StudentProjectDetails({ projectId, onBack, project }) {
           <h2 className="text-xl font-bold text-gray-900 mb-4">Proof</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {(project.proofDocuments || []).map((proof) => (
-              <div key={proof.id} className="border border-indigo-100 bg-white rounded-xl p-4">
+              <button
+                key={proof.id}
+                onClick={() => setSelectedProofDocument(proof)}
+                className="border border-indigo-100 bg-white rounded-xl p-4 text-left hover:shadow-md transition-shadow"
+              >
                 <div className="flex items-center gap-2 mb-3">
                   <FileText className="w-4 h-4 text-indigo-600" />
                   <div>
@@ -219,9 +249,20 @@ export default function StudentProjectDetails({ projectId, onBack, project }) {
                 </div>
                 <div className="flex items-center justify-between">
                   <p className="text-xs text-gray-500">{proof.uploadDate}</p>
-                  <Badge className="bg-indigo-100 text-indigo-700">{proof.status}</Badge>
+                  <div className="flex items-center gap-2">
+                    <a
+                      href={getProofUrl(proof.ledgerProof)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xs px-2 py-1 rounded-md border border-indigo-300 text-indigo-700 hover:bg-indigo-50"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      View Proof
+                    </a>
+                    <Badge className="bg-indigo-100 text-indigo-700">{proof.status}</Badge>
+                  </div>
                 </div>
-              </div>
+              </button>
             ))}
             {!project.proofDocuments?.length && <p className="text-gray-500">No proof documents uploaded.</p>}
           </div>
@@ -231,14 +272,26 @@ export default function StudentProjectDetails({ projectId, onBack, project }) {
       {activeTab === 'status timeline' && (
         <Card className="rounded-[20px] border-0 shadow-sm p-6 bg-gradient-to-br from-white to-purple-50">
           <h2 className="text-xl font-bold text-gray-900 mb-4">Status Timeline</h2>
-          <div className="space-y-4">
-            {(project.statusTimeline || []).map((item) => (
-              <div key={item.id} className="flex gap-3 items-start border-b border-purple-100 pb-3">
-                <Clock3 className="w-5 h-5 text-purple-600 mt-0.5" />
-                <div>
-                  <p className="font-semibold text-gray-900">{item.label}</p>
+          <div className="space-y-0">
+            {(project.statusTimeline || []).map((item, index, arr) => (
+              <div key={item.id} className="flex gap-4 items-start relative">
+                <div className="flex flex-col items-center">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                    item.isCurrent ? 'bg-emerald-500 text-white' : item.isDone ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-600'
+                  }`}>
+                    {item.isDone || item.isCurrent ? <CheckCircle className="w-4 h-4" /> : <Clock3 className="w-4 h-4" />}
+                  </div>
+                  {index < arr.length - 1 && (
+                    <div className={`w-0.5 h-16 ${item.isDone ? 'bg-blue-400' : 'bg-gray-200'}`} />
+                  )}
+                </div>
+                <div className={`pb-6 flex-1 ${index !== arr.length - 1 ? 'border-b border-purple-100' : ''}`}>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-semibold text-gray-900">{item.label}</p>
+                    {item.isCurrent && <Badge className="bg-emerald-100 text-emerald-700">Current</Badge>}
+                  </div>
                   <p className="text-sm text-gray-700">{item.description}</p>
-                  <p className="text-xs text-gray-500">{item.date || '-'}</p>
+                  <p className="text-xs text-gray-500 mt-1">{item.date || '-'}</p>
                 </div>
               </div>
             ))}
@@ -251,7 +304,7 @@ export default function StudentProjectDetails({ projectId, onBack, project }) {
         <Card className="rounded-[20px] border-0 shadow-sm p-6 bg-gradient-to-br from-white to-yellow-50">
           <h2 className="text-xl font-bold text-gray-900 mb-6">Ratings</h2>
           <div className="space-y-6">
-            {(project.ratings || []).map((review) => (
+            {(showAllComments ? (project.ratings || []) : (project.ratings || []).slice(0, 5)).map((review) => (
               <div key={review.id} className="flex gap-4 pb-6 border-b border-yellow-100 last:border-0">
                 <div className="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center flex-shrink-0">
                   <span className="text-sm font-bold text-blue-700">
@@ -273,13 +326,116 @@ export default function StudentProjectDetails({ projectId, onBack, project }) {
                     <span className="text-sm text-gray-500">{review.date || ''}</span>
                   </div>
                   <p className="text-gray-700 mt-2">{review.comment || 'No comment provided.'}</p>
+                  <div className="mt-2">
+                    <span className="inline-flex items-center text-xs px-2 py-1 rounded-md bg-white border border-yellow-200 text-yellow-700">
+                      Helpful {review.helpfulCount || 0}
+                    </span>
+                  </div>
                 </div>
               </div>
             ))}
+            {(project.ratings || []).length > 5 && (
+              <button
+                onClick={() => setShowAllComments((prev) => !prev)}
+                className="px-4 py-2 text-sm font-medium rounded-lg border border-yellow-300 bg-white hover:bg-yellow-50 text-yellow-700"
+              >
+                {showAllComments ? 'Show less comments' : `More comments (${(project.ratings || []).length - 5})`}
+              </button>
+            )}
             {!project.ratings?.length && <p className="text-gray-500">No ratings yet.</p>}
           </div>
         </Card>
       )}
+
+      <StudentModal
+        isOpen={!!selectedLedgerEntry}
+        onClose={() => setSelectedLedgerEntry(null)}
+        title="Ledger Entry Details"
+      >
+        {selectedLedgerEntry && (
+          <div className="space-y-4 pt-2">
+            <div className={`rounded-2xl p-4 border ${selectedLedgerEntry.type === 'Income' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+              <div className="flex items-center justify-between">
+                <p className="font-semibold text-gray-900">{selectedLedgerEntry.type} Entry</p>
+                <Badge className="bg-white text-gray-700 border">{selectedLedgerEntry.approvalStatus || '-'}</Badge>
+              </div>
+              <p className="text-2xl font-bold text-gray-900 mt-2">₱{Number(selectedLedgerEntry.amount || 0).toLocaleString()}</p>
+              <p className="text-xs text-gray-600 mt-1">Transaction ID: {selectedLedgerEntry.id}</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+              <div className="rounded-xl border bg-gray-50 p-3"><p className="text-xs text-gray-500">Category</p><p className="font-medium text-gray-900">{selectedLedgerEntry.category || '-'}</p></div>
+              <div className="rounded-xl border bg-gray-50 p-3"><p className="text-xs text-gray-500">Created</p><p className="font-medium text-gray-900">{selectedLedgerEntry.createdAt || '-'}</p></div>
+              <div className="rounded-xl border bg-gray-50 p-3"><p className="text-xs text-gray-500">Approved</p><p className="font-medium text-gray-900">{selectedLedgerEntry.approvedAt || '-'}</p></div>
+              <div className="rounded-xl border bg-gray-50 p-3"><p className="text-xs text-gray-500">Rejected</p><p className="font-medium text-gray-900">{selectedLedgerEntry.rejectedAt || '-'}</p></div>
+            </div>
+
+            <div className="rounded-xl border bg-white p-4">
+              <p className="text-xs text-gray-500 mb-1">Description</p>
+              <p className="text-sm text-gray-800">{selectedLedgerEntry.description || '-'}</p>
+            </div>
+
+            <div className="rounded-xl border bg-white p-4">
+              <p className="text-xs text-gray-500 mb-1">Remarks</p>
+              <p className="text-sm text-gray-800">{selectedLedgerEntry.note || '-'}</p>
+            </div>
+
+            <div className="flex items-center justify-between rounded-xl bg-blue-50 border border-blue-100 p-3">
+              <p className="text-sm text-blue-800">Supporting proof file</p>
+              <a
+                href={getProofUrl(selectedLedgerEntry.ledgerProof)}
+                target="_blank"
+                rel="noreferrer"
+                className="text-xs px-3 py-1.5 rounded-md border border-blue-300 text-blue-700 hover:bg-blue-100"
+              >
+                Open Proof
+              </a>
+            </div>
+          </div>
+        )}
+      </StudentModal>
+
+      <StudentModal
+        isOpen={!!selectedProofDocument}
+        onClose={() => setSelectedProofDocument(null)}
+        title="Proof Document Details"
+      >
+        {selectedProofDocument && (
+          <div className="space-y-4 pt-2">
+            <div className="rounded-2xl bg-indigo-50 border border-indigo-200 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="font-semibold text-gray-900">{selectedProofDocument.fileName || 'Proof Document'}</p>
+                  <p className="text-xs text-gray-600 mt-1">Document ID: {selectedProofDocument.id}</p>
+                </div>
+                <Badge className="bg-indigo-100 text-indigo-700">{selectedProofDocument.status || '-'}</Badge>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+              <div className="rounded-xl border bg-gray-50 p-3"><p className="text-xs text-gray-500">Linked Transaction</p><p className="font-medium text-gray-900">{selectedProofDocument.linkedTransaction || '-'}</p></div>
+              <div className="rounded-xl border bg-gray-50 p-3"><p className="text-xs text-gray-500">Uploaded</p><p className="font-medium text-gray-900">{selectedProofDocument.uploadDate || '-'}</p></div>
+            </div>
+
+            <div className="rounded-xl border bg-white p-4">
+              <p className="text-xs text-gray-500 mb-1">Description</p>
+              <p className="text-sm text-gray-800">{selectedProofDocument.description || 'Supporting document attached to this transaction.'}</p>
+            </div>
+
+            <div className="flex items-center justify-between rounded-xl bg-indigo-50 border border-indigo-100 p-3">
+              <p className="text-sm text-indigo-800">Open uploaded proof</p>
+              <a
+                href={getProofUrl(selectedProofDocument.ledgerProof)}
+                target="_blank"
+                rel="noreferrer"
+                className="text-xs px-3 py-1.5 rounded-md border border-indigo-300 text-indigo-700 hover:bg-indigo-100"
+              >
+                View File
+              </a>
+            </div>
+          </div>
+        )}
+      </StudentModal>
 
       {/* Rating Modal */}
       <StudentModal

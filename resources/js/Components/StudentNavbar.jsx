@@ -19,7 +19,15 @@ import {
   Bell
 } from 'lucide-react';
 
-export function StudentNavbar({ currentView, onNavigate, onLogout: onLogoutCallback, onSwitchRole, userData }) {
+export function StudentNavbar({
+  currentView,
+  onNavigate,
+  onLogout: onLogoutCallback,
+  onSwitchRole,
+  userData,
+  notificationsData = [],
+  unreadNotificationsCount = 0,
+}) {
   const { logout: supabaseLogout } = useLogout();
   const { user } = useSupabase();
   const { props } = usePage();
@@ -62,6 +70,7 @@ export function StudentNavbar({ currentView, onNavigate, onLogout: onLogoutCallb
     { id: 'badges', label: 'Badges', icon: Award },
     { id: 'leaderboard', label: 'Leaderboard', icon: Trophy },
   ];
+  const navbarNotifications = (notificationsData || []).slice(0, 5);
 
   return ( 
     <>
@@ -116,7 +125,11 @@ export function StudentNavbar({ currentView, onNavigate, onLogout: onLogoutCallb
                   className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                 >
                   <Bell className="w-5 h-5 text-gray-600" />
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">3</span>
+                  {unreadNotificationsCount > 0 && (
+                    <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                      {unreadNotificationsCount > 99 ? '99+' : unreadNotificationsCount}
+                    </span>
+                  )}
                 </button>
                 {isNotificationsOpen && (
                   <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-gray-200 z-50">
@@ -124,14 +137,14 @@ export function StudentNavbar({ currentView, onNavigate, onLogout: onLogoutCallb
                       <p className="font-medium">Notifications</p>
                     </div>
                     <div className="max-h-96 overflow-y-auto">
-                      <div className="p-3 hover:bg-gray-50 cursor-pointer">
-                        <p className="text-sm">New project update</p>
-                        <p className="text-xs text-gray-500">2 min ago</p>
-                      </div>
-                      <div className="p-3 hover:bg-gray-50 cursor-pointer">
-                        <p className="text-sm">Meeting reminder</p>
-                        <p className="text-xs text-gray-500">1 hour ago</p>
-                      </div>
+                      {navbarNotifications.length > 0 ? navbarNotifications.map((item) => (
+                        <div key={item.id} className="p-3 hover:bg-gray-50 cursor-pointer">
+                          <p className="text-sm text-gray-900">{item.title}</p>
+                          <p className="text-xs text-gray-500">{item.timestamp}</p>
+                        </div>
+                      )) : (
+                        <div className="p-3 text-sm text-gray-500">No notifications</div>
+                      )}
                     </div>
                     <div className="p-3 border-t text-center">
                       <button onClick={() => onNavigate('notifications')} className="text-sm text-blue-600">
@@ -325,7 +338,11 @@ export function StudentNavbar({ currentView, onNavigate, onLogout: onLogoutCallb
               >
                 <Bell className="w-5 h-5" />
                 <span>Notifications</span>
-                <span className="ml-auto bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">3</span>
+                {unreadNotificationsCount > 0 && (
+                  <span className="ml-auto bg-red-500 text-white text-xs rounded-full min-w-5 h-5 px-1 flex items-center justify-center">
+                    {unreadNotificationsCount > 99 ? '99+' : unreadNotificationsCount}
+                  </span>
+                )}
               </button>
             </li>
 

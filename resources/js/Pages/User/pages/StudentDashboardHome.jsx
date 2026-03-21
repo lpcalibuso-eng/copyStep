@@ -1,6 +1,14 @@
 import { TrendingUp, Award, Trophy, FolderKanban, Calendar, Star, Target, Zap } from 'lucide-react';
 
-export function StudentDashboardHome({ onNavigate }) {
+export function StudentDashboardHome({
+  onNavigate,
+  onViewProject,
+  stats = {},
+  activeProjects = [],
+  recentBadges = [],
+  upcomingMeetings = [],
+  leaderboardSummary = null,
+}) {
   return (
     <div className="space-y-6 pb-6">
       {/* Welcome Header */}
@@ -16,17 +24,17 @@ export function StudentDashboardHome({ onNavigate }) {
           </div> */}
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
             <Award className="w-6 h-6 mb-2" />
-            <p className="text-2xl mb-1">12</p>
+            <p className="text-2xl mb-1">{stats.badgesEarned ?? 0}</p>
             <p className="text-xs text-blue-100">Badges Earned</p>
           </div>
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
             <Trophy className="w-6 h-6 mb-2" />
-            <p className="text-2xl mb-1">#24</p>
+            <p className="text-2xl mb-1">{stats.leaderboardRank ? `#${stats.leaderboardRank}` : '-'}</p>
             <p className="text-xs text-blue-100">Leaderboard Rank</p>
           </div>
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
             <Star className="w-6 h-6 mb-2" />
-            <p className="text-2xl mb-1">Level 5</p>
+            <p className="text-2xl mb-1">Level {stats.engagementLevel ?? (leaderboardSummary?.level || 1)}</p>
             <p className="text-xs text-blue-100">Engagement Level</p>
           </div>
         </div>
@@ -40,7 +48,7 @@ export function StudentDashboardHome({ onNavigate }) {
         >
           <FolderKanban className="w-8 h-8 text-blue-600 mb-2" />
           <p className="text-sm text-gray-900">View Projects</p>
-          <p className="text-xs text-gray-500 mt-1">12 active</p>
+          <p className="text-xs text-gray-500 mt-1">{stats.activeProjectsCount ?? activeProjects.length} active</p>
         </button>
 
         <button
@@ -49,7 +57,7 @@ export function StudentDashboardHome({ onNavigate }) {
         >
           <Calendar className="w-8 h-8 text-blue-600 mb-2" />
           <p className="text-sm text-gray-900">Meetings</p>
-          <p className="text-xs text-gray-500 mt-1">3 upcoming</p>
+          <p className="text-xs text-gray-500 mt-1">{stats.upcomingMeetingsCount ?? upcomingMeetings.length} upcoming</p>
         </button>
 
         {/* <button
@@ -75,36 +83,12 @@ export function StudentDashboardHome({ onNavigate }) {
         </div>
 
         <div className="space-y-3">
-          {[
-            {
-              title: 'Community Outreach Program',
-              status: 'In Progress',
-              rating: 4.8,
-              participants: 150,
-              deadline: 'Dec 15, 2024',
-              progress: 75,
-              color: 'green'
-            },
-            {
-              title: 'Annual Sports Fest',
-              status: 'Planning',
-              rating: 4.5,
-              participants: 320,
-              deadline: 'Jan 20, 2025',
-              progress: 45,
-              color: 'blue'
-            },
-            {
-              title: 'Campus Sustainability Initiative',
-              status: 'In Progress',
-              rating: 4.9,
-              participants: 200,
-              deadline: 'Nov 30, 2024',
-              progress: 90,
-              color: 'purple'
-            },
-          ].map((project, index) => (
-            <div key={index} className="p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors cursor-pointer">
+          {(activeProjects || []).map((project, index) => (
+            <button
+              key={index}
+              onClick={() => onViewProject?.(project.id)}
+              className="w-full text-left p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors cursor-pointer"
+            >
               <div className="flex items-start justify-between mb-2">
                 <div className="flex-1">
                   <p className="text-sm text-gray-900 mb-1">{project.title}</p>
@@ -141,8 +125,9 @@ export function StudentDashboardHome({ onNavigate }) {
                 </div>
                 <span className="text-xs text-gray-600">{project.progress}%</span>
               </div>
-            </div>
+            </button>
           ))}
+          {!activeProjects?.length && <p className="text-sm text-gray-500">No active projects yet.</p>}
         </div>
       </div>
 
@@ -160,19 +145,13 @@ export function StudentDashboardHome({ onNavigate }) {
           </div>
 
           <div className="grid grid-cols-3 gap-3">
-            {[
-              { name: 'Active Participant', icon: '🌟', color: 'bg-yellow-100' },
-              { name: 'Project Supporter', icon: '🎯', color: 'bg-blue-100' },
-              { name: 'Meeting Regular', icon: '📅', color: 'bg-green-100' },
-              { name: 'Top Contributor', icon: '🏆', color: 'bg-blue-100' },
-              { name: 'Rising Star', icon: '⭐', color: 'bg-purple-100' },
-              { name: 'Team Player', icon: '🤝', color: 'bg-pink-100' },
-            ].map((badge, index) => (
+            {(recentBadges || []).map((badge, index) => (
               <div key={index} className={`${badge.color} rounded-xl p-3 text-center`}>
                 <p className="text-2xl mb-1">{badge.icon}</p>
                 <p className="text-xs text-gray-700">{badge.name}</p>
               </div>
             ))}
+            {!recentBadges?.length && <p className="text-sm text-gray-500 col-span-3">No recent badges.</p>}
           </div>
         </div>
 
@@ -188,11 +167,7 @@ export function StudentDashboardHome({ onNavigate }) {
           </div>
 
           <div className="space-y-3">
-            {[
-              { title: 'General Assembly', date: 'Nov 28', time: '2:00 PM', location: 'Auditorium' },
-              { title: 'Budget Presentation', date: 'Dec 2', time: '10:00 AM', location: 'Room 301' },
-              { title: 'Project Kickoff', date: 'Dec 5', time: '3:00 PM', location: 'Online' },
-            ].map((meeting, index) => (
+            {(upcomingMeetings || []).map((meeting, index) => (
               <div key={index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
                 <div className="w-10 h-10 bg-blue-100 rounded-lg flex flex-col items-center justify-center flex-shrink-0">
                   <p className="text-xs text-blue-600">{meeting.date.split(' ')[0]}</p>
@@ -204,6 +179,7 @@ export function StudentDashboardHome({ onNavigate }) {
                 </div>
               </div>
             ))}
+            {!upcomingMeetings?.length && <p className="text-sm text-gray-500">No upcoming meetings.</p>}
           </div>
         </div>
       </div>

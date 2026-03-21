@@ -156,18 +156,19 @@ const getRankColor = (rank) => {
   return 'from-blue-600 to-blue-700';
 };
 
-export default function StudentLeaderboardPage({ onNavigate }) {
+export default function StudentLeaderboardPage({ onNavigate, leaderboardData: externalData = [], currentUser: currentUserProp = null }) {
   const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 10;
+  const data = externalData.length ? externalData : leaderboardData;
   
-  const currentUser = leaderboardData.find(u => u.isCurrentUser);
-  const topThree = leaderboardData.slice(0, 3);
+  const currentUser = currentUserProp || data.find(u => u.isCurrentUser);
+  const topThree = data.slice(0, 3);
   
   // Calculate pagination
-  const totalPages = Math.ceil(leaderboardData.length / rowsPerPage);
+  const totalPages = Math.max(1, Math.ceil(data.length / rowsPerPage));
   const startIndex = (currentPage - 1) * rowsPerPage;
   const endIndex = startIndex + rowsPerPage;
-  const currentPageData = leaderboardData.slice(startIndex, endIndex);
+  const currentPageData = data.slice(startIndex, endIndex);
 
   return (
     <div className="space-y-6 pb-6">
@@ -394,7 +395,7 @@ export default function StudentLeaderboardPage({ onNavigate }) {
           {/* Pagination */}
           <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-gray-50">
             <p className="text-sm text-gray-600">
-              Showing {startIndex + 1} to {Math.min(endIndex, leaderboardData.length)} of {leaderboardData.length} results
+              Showing {data.length ? startIndex + 1 : 0} to {Math.min(endIndex, data.length)} of {data.length} results
             </p>
             <div className="flex items-center gap-2">
               <button

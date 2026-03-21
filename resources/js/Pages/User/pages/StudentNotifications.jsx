@@ -139,8 +139,8 @@ const getIcon = (icon) => {
   }
 };
 
-export default function StudentNotificationsPage({ onNavigate }) {
-  const [notifications, setNotifications] = useState(mockNotifications);
+export default function StudentNotificationsPage({ onNavigate, notificationsData = [] }) {
+  const [notifications, setNotifications] = useState(notificationsData.length ? notificationsData : mockNotifications);
   const [selectedFilter, setSelectedFilter] = useState('all');
 
   const filteredNotifications = selectedFilter === 'all' 

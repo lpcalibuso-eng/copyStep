@@ -166,29 +166,17 @@ Route::get('/user/projects', [UserProjectController::class, 'index'])->name('use
 Route::get('/user/projects/{id}', [UserProjectController::class, 'show'])->name('user.project-details');
 Route::post('/user/projects/{id}/ratings', [UserProjectController::class, 'upsertRating'])->name('user.project-rate');
 
-Route::get('/user/meetings', function () {
-    return Inertia::render('User/Dashboard', ['page' => 'meetings']);
-})->name('user.meetings');
+Route::get('/user/meetings', [UserProjectController::class, 'meetings'])->name('user.meetings');
 
-Route::get('/user/profile', function () {
-    return Inertia::render('User/Dashboard', ['page' => 'profile']);
-})->name('user.profile');
+Route::get('/user/profile', [UserProjectController::class, 'profile'])->name('user.profile');
 
-Route::get('/user/points', function () {
-    return Inertia::render('User/Dashboard', ['page' => 'points']);
-})->name('user.points');
+Route::get('/user/points', [UserProjectController::class, 'points'])->name('user.points');
 
-Route::get('/user/badges', function () {
-    return Inertia::render('User/Dashboard', ['page' => 'badges']);
-})->name('user.badges');
+Route::get('/user/badges', [UserProjectController::class, 'badges'])->name('user.badges');
 
-Route::get('/user/leaderboard', function () {
-    return Inertia::render('User/Dashboard', ['page' => 'leaderboard']);
-})->name('user.leaderboard');
+Route::get('/user/leaderboard', [UserProjectController::class, 'leaderboard'])->name('user.leaderboard');
 
-Route::get('/user/notifications', function () {
-    return Inertia::render('User/Dashboard', ['page' => 'notifications']);
-})->name('user.notifications');
+Route::get('/user/notifications', [UserProjectController::class, 'notifications'])->name('user.notifications');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

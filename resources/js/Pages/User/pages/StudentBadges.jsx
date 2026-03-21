@@ -231,17 +231,18 @@ const tierColors = {
   Platinum: { bg: 'from-purple-400 to-purple-600', border: 'border-purple-300', text: 'text-purple-700' },
 };
 
-export default function StudentBadgesPage({ onNavigate }) {
+export default function StudentBadgesPage({ onNavigate, badgesData = [] }) {
   const [selectedBadge, setSelectedBadge] = useState(null);
   const [selectedTier, setSelectedTier] = useState('all');
+  const badgeList = badgesData.length ? badgesData : badges;
 
-  const totalBadges = badges.length;
-  const unlockedBadges = badges.filter(b => b.unlocked).length;
-  const totalPoints = badges.filter(b => b.unlocked).reduce((sum, b) => sum + b.points, 0);
+  const totalBadges = badgeList.length;
+  const unlockedBadges = badgeList.filter(b => b.unlocked).length;
+  const totalPoints = badgeList.filter(b => b.unlocked).reduce((sum, b) => sum + b.points, 0);
 
   const filteredBadges = selectedTier === 'all' 
-    ? badges 
-    : badges.filter(b => b.tier === selectedTier);
+    ? badgeList 
+    : badgeList.filter(b => b.tier === selectedTier);
 
   const handleCloseBadgeModal = () => {
     setSelectedBadge(null);

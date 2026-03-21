@@ -19,6 +19,16 @@ export default function UserDashboard() {
   const projects = props.projects || [];
   const project = props.project || null;
   const userRatingMap = props.userRatingMap || {};
+  const dashboardStats = props.dashboardStats || {};
+  const activeProjects = props.activeProjects || [];
+  const recentBadges = props.recentBadges || [];
+  const upcomingMeetings = props.upcomingMeetings || [];
+  const leaderboardSummary = props.leaderboardSummary || null;
+  const badgesData = props.badgesData || [];
+  const leaderboardData = props.leaderboardData || [];
+  const leaderboardCurrentUser = props.leaderboardCurrentUser || null;
+  const notificationsData = props.notificationsData || [];
+  const unreadNotificationsCount = props.unreadNotificationsCount || 0;
 
   // Map routes to current view
   const getCurrentView = () => {
@@ -73,6 +83,8 @@ export default function UserDashboard() {
         onLogout={handleLogout}
         onSwitchRole={handleSwitchRole}
         userData={userData}
+        notificationsData={notificationsData}
+        unreadNotificationsCount={unreadNotificationsCount}
       />
       <AuthenticatedLayout
         header={<h2 className="text-xl font-semibold leading-tight text-gray-800">Student Dashboard</h2>}
@@ -80,7 +92,17 @@ export default function UserDashboard() {
         <Head title="Student Dashboard" />
         <div className="pt-8 px-4 lg:px-0 md:px-0 lg:pt-24 lg:pb-8 pb-20"> {/* adjust padding to match navbar height */}
           <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
-            {currentView === 'dashboard' && <StudentDashboardHome onNavigate={handleNavigate} />}
+            {currentView === 'dashboard' && (
+              <StudentDashboardHome
+                onNavigate={handleNavigate}
+                onViewProject={handleViewProjectDetails}
+                stats={dashboardStats}
+                activeProjects={activeProjects}
+                recentBadges={recentBadges}
+                upcomingMeetings={upcomingMeetings}
+                leaderboardSummary={leaderboardSummary}
+              />
+            )}
             {currentView === 'projects' && (
               <StudentProjectsPage
                 onNavigate={handleNavigate}
@@ -98,9 +120,17 @@ export default function UserDashboard() {
             )}
             {currentView === 'meetings' && <StudentMeetingsPage onNavigate={handleNavigate} />}
             {currentView === 'profile' && <StudentProfilePage onNavigate={handleNavigate} />}
-            {currentView === 'badges' && <StudentBadgesPage onNavigate={handleNavigate} />}
-            {currentView === 'leaderboard' && <StudentLeaderboardPage onNavigate={handleNavigate} />}
-            {currentView === 'notifications' && <StudentNotificationsPage onNavigate={handleNavigate} />}
+            {currentView === 'badges' && <StudentBadgesPage onNavigate={handleNavigate} badgesData={badgesData} />}
+            {currentView === 'leaderboard' && (
+              <StudentLeaderboardPage
+                onNavigate={handleNavigate}
+                leaderboardData={leaderboardData}
+                currentUser={leaderboardCurrentUser}
+              />
+            )}
+            {currentView === 'notifications' && (
+              <StudentNotificationsPage onNavigate={handleNavigate} notificationsData={notificationsData} />
+            )}
           </div>
         </div>
       </AuthenticatedLayout>

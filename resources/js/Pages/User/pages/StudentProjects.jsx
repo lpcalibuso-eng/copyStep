@@ -3,7 +3,7 @@ import { Card } from '@/Components/ui/card';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Badge } from '@/Components/ui/badge';
-import { Search, Star, Users, Calendar } from 'lucide-react';
+import { Search, Star, Users, Calendar, Microscope, Trophy, Leaf, GraduationCap, Music, Handshake, FolderKanban } from 'lucide-react';
 
 export default function StudentProjectsPage({ onNavigate, onViewDetails, projects = [], userRatingMap = {} }) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -52,6 +52,17 @@ export default function StudentProjectsPage({ onNavigate, onViewDetails, project
 
   const totalPages = Math.max(1, Math.ceil(filteredProjects.length / cardsPerPage));
   const paginatedProjects = filteredProjects.slice((currentPage - 1) * cardsPerPage, currentPage * cardsPerPage);
+
+  const getCategoryVisual = (category) => {
+    const key = (category || '').toLowerCase();
+    if (key.includes('tech')) return { Icon: Microscope, color: 'from-sky-500 to-blue-700' };
+    if (key.includes('sport')) return { Icon: Trophy, color: 'from-orange-500 to-red-600' };
+    if (key.includes('env')) return { Icon: Leaf, color: 'from-emerald-500 to-green-700' };
+    if (key.includes('educ')) return { Icon: GraduationCap, color: 'from-indigo-500 to-violet-700' };
+    if (key.includes('cultur')) return { Icon: Music, color: 'from-fuchsia-500 to-pink-700' };
+    if (key.includes('social')) return { Icon: Handshake, color: 'from-cyan-500 to-teal-700' };
+    return { Icon: FolderKanban, color: 'from-slate-500 to-slate-700' };
+  };
 
   return (
     <div className="space-y-6 pb-6">
@@ -116,8 +127,13 @@ export default function StudentProjectsPage({ onNavigate, onViewDetails, project
         {paginatedProjects.map((project) => (
           <Card key={project.id} className="overflow-hidden rounded-[20px] border-0 shadow-sm hover:shadow-md transition-all">
             {/* Project Icon */}
-            <div className="h-32 bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-6xl">
-              {project.image || '📌'}
+            <div className={`h-32 bg-gradient-to-br ${getCategoryVisual(project.category).color} flex items-center justify-center`}>
+              <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                {(() => {
+                  const CategoryIcon = getCategoryVisual(project.category).Icon;
+                  return <CategoryIcon className="w-9 h-9 text-white" />;
+                })()}
+              </div>
             </div>
 
             <div className="p-6">
@@ -125,7 +141,10 @@ export default function StudentProjectsPage({ onNavigate, onViewDetails, project
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1">
                   <h3 className="text-gray-900 font-semibold mb-1">{project.title}</h3>
-                  <Badge className="bg-blue-100 text-blue-700 text-xs">{project.category}</Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge className="bg-blue-100 text-blue-700 text-xs">{project.category}</Badge>
+                    <Badge className="bg-gray-100 text-gray-700 text-xs">{project.status || 'Draft'}</Badge>
+                  </div>
                 </div>
               </div>
 
