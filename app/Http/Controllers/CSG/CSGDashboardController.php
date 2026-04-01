@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\CSG\LedgerEntry;
 use App\Models\CSG\Meeting;
 use App\Models\CSG\Project;
+use App\Models\User\Rating;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
@@ -21,6 +22,15 @@ class CSGDashboardController extends Controller
     {
         $activeProjectsCount = Project::where('archive', 0)->count();
         $pendingApprovalCount = Project::where('archive', 0)->where('approval_status', 'Pending Adviser Approval')->count();
+
+        // Calculate average rating and CSAT
+        $ratings = Rating::where('archive', false)->get();
+        $averageRating = $ratings->count() > 0 ? round($ratings->avg('rating_score'), 2) : 0.0;
+        
+        // CSAT: ratings of 3-5 stars = satisfied, 1-2 stars = not satisfied
+        $satisfied = $ratings->whereIn('rating_score', [3, 4, 5])->count();
+        $csatRate = $ratings->count() > 0 ? (int) round(100 * $satisfied / $ratings->count()) : 0;
+        $totalRatings = $ratings->count();
 
         $ledgerSumsPerProject = LedgerEntry::select('project_id',
             DB::raw("SUM(CASE WHEN type = 'Income' THEN amount ELSE 0 END) as income"),
@@ -98,6 +108,9 @@ class CSGDashboardController extends Controller
                 'activeProjects' => $activeProjectsCount,
                 'pendingApprovals' => $pendingApprovalCount,
                 'avgNetPerProject' => $avgNetForProject,
+                'averageRating' => $averageRating,
+                'csatRate' => $csatRate,
+                'totalRatings' => $totalRatings,
             ],
             'projects' => $projects,
             'recentLedgerEntries' => $recentLedgerEntries,

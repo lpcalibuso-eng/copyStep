@@ -64,39 +64,35 @@ const defaultProject = {
 const mockStatusHistory = [
   { 
     id: 1, 
-    status: 'Draft Created', 
-    timestamp: '2024-10-25', 
-    updatedBy: 'Sarah Chen', 
-    role: 'CSG Officer', 
+    label: 'Draft Created', 
+    date: '2024-10-25', 
     description: 'Project draft created and initial details added.', 
-    color: 'gray' 
+    isDone: true,
+    isCurrent: false
   },
   { 
     id: 2, 
-    status: 'Submitted for Approval', 
-    timestamp: '2024-10-28', 
-    updatedBy: 'Sarah Chen', 
-    role: 'CSG Officer', 
+    label: 'Submitted for Approval', 
+    date: '2024-10-28', 
     description: 'Project submitted to adviser for review and approval.', 
-    color: 'yellow' 
+    isDone: true,
+    isCurrent: false
   },
   { 
     id: 3, 
-    status: 'Approved', 
-    timestamp: '2024-10-30', 
-    updatedBy: 'Dr. Maria Santos', 
-    role: 'Adviser', 
+    label: 'Approved', 
+    date: '2024-10-30', 
     description: 'Project approved. Ready for execution.', 
-    color: 'green' 
+    isDone: true,
+    isCurrent: false
   },
   { 
     id: 4, 
-    status: 'Execution Started', 
-    timestamp: '2024-11-01', 
-    updatedBy: 'Sarah Chen', 
-    role: 'CSG Officer', 
+    label: 'Execution Started', 
+    date: '2024-11-01', 
     description: 'Project execution phase started. Budget allocated.', 
-    color: 'blue' 
+    isDone: true,
+    isCurrent: true
   },
 ];
 
@@ -170,6 +166,30 @@ const getStatusIcon = (status) => {
   }
 };
 
+const calculateProgressFromDays = (startDate, endDate) => {
+  if (!startDate || !endDate) return 0;
+  
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  const now = new Date();
+  
+  // If project hasn't started yet
+  if (now < start) return 0;
+  
+  // If project is completed
+  if (now > end) return 100;
+  
+  // Calculate total days in project
+  const totalDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+  
+  // Calculate elapsed days
+  const elapsedDays = Math.ceil((now - start) / (1000 * 60 * 60 * 24));
+  
+  // Calculate percentage
+  const percentage = Math.min(Math.round((elapsedDays / totalDays) * 100), 100);
+  return Math.max(percentage, 0);
+};
+
 function Progress({ value, className = '' }) {
   return (
     <div className={`w-full h-2 bg-gray-100 rounded-full overflow-hidden ${className}`}>
@@ -205,13 +225,16 @@ export function CSGProjectDetailsPage({
   const [ledgerEntries, setLedgerEntries] = useState([]);
   const [proofDocuments, setProofDocuments] = useState([]);
   
-  // Use mock data for status timeline and ratings
-  const [statusHistory] = useState(mockStatusHistory);
-  const [ratings] = useState(mockRatings);
-  const averageRating = ratings.length > 0 
-    ? ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length 
-    : 0;
-  const totalRatings = ratings.length;
+  // Status timeline - changed from static to mutable state
+  const [statusHistory, setStatusHistory] = useState(mockStatusHistory);
+  const [ratings, setRatings] = useState([]);
+  const [ratingsStats, setRatingsStats] = useState({
+    averageRating: 0,
+    totalRatings: 0,
+    csatRate: 0,
+    satisfied: 0,
+    notSatisfied: 0,
+  });
   
   const [budgetItems, setBudgetItems] = useState(() => {
     if (project.budgetBreakdown && project.budgetBreakdown.length > 0) {
@@ -364,13 +387,31 @@ const formatDate = (dateString) => {
             }
           }
 
+          // Normalize API response to use camelCase field names consistently
           const normalized = {
             ...defaultProject,
-            ...data,
-            budgetBreakdown,
+            id: data.id || null,
+            title: data.title || '',
+            category: data.category || '',
+            description: data.description || '',
             objective: data.objective || '',
             venue: data.venue || '',
+            status: data.status || 'Draft',
             approvalStatus: data.approval_status || data.approvalStatus || 'Draft',
+            progress: data.progress || 0,
+            budget: data.budget || 0,
+            budgetBreakdown,
+            startDate: data.start_date || data.startDate || '',
+            endDate: data.end_date || data.endDate || '',
+            createdAt: data.created_at || data.createdAt || '',
+            proposedBy: data.proposed_by || data.proposedBy || '',
+            note: data.note || '',
+            approveBy: data.approve_by || data.approveBy || '',
+            projectProof: data.project_proof || data.projectProof || null,
+            createdBy: data.created_by || data.createdBy || null,
+            updatedBy: data.updated_by || data.updatedBy || null,
+            archive: data.archive || 0,
+            approvedAt: data.approved_at || data.approvedAt || null,
           };
           setProject(normalized);
         }
@@ -428,6 +469,58 @@ const formatDate = (dateString) => {
     };
   };
 
+  // Function to build status timeline from ledger entries
+  const buildStatusTimeline = (ledgerEntries) => {
+    // Start with base status events
+    const baseEvents = [
+      {
+        id: 'project-created',
+        label: 'Project Created',
+        description: 'Project created by CSG.',
+        date: project.createdAt ? project.createdAt.split('T')[0] : new Date().toISOString().split('T')[0],
+        isDone: true,
+        isCurrent: false,
+      },
+      {
+        id: 'project-status',
+        label: 'Project Status Updated',
+        description: `Current status: ${project.status || 'Draft'} / Approval: ${project.approvalStatus || 'Pending'}`,
+        date: project.updatedAt ? project.updatedAt.split('T')[0] : new Date().toISOString().split('T')[0],
+        isDone: true,
+        isCurrent: false,
+      },
+    ];
+
+    // Convert ledger entries to timeline events
+    const ledgerEvents = (ledgerEntries || []).map((entry) => ({
+      id: `ledger-${entry.id}`,
+      label: `Ledger Entry ${entry.type || 'Entry'}`,
+      description: `${entry.description || 'No description'} - ${entry.approval_status || 'Draft'}`,
+      date: entry.created_at ? entry.created_at.split('T')[0] : entry.createdAt ? entry.createdAt.split('T')[0] : new Date().toISOString().split('T')[0],
+      isDone: entry.approval_status === 'Approved',
+      isCurrent: false,
+    }));
+
+    // Combine and sort by date
+    const allEvents = [...baseEvents, ...ledgerEvents];
+    allEvents.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    // Mark the last event as current
+    if (allEvents.length > 0) {
+      allEvents[allEvents.length - 1].isCurrent = true;
+    }
+
+    // Mark all completed before the last as isDone
+    allEvents.forEach((item, index) => {
+      if (index < allEvents.length - 1) {
+        item.isDone = true;
+      }
+    });
+
+    console.log('📊 Built timeline with', allEvents.length, 'events:', allEvents);
+    return allEvents;
+  };
+
   // Fetch ledger entries from database
   const fetchLedgerEntries = async () => {
     if (!projectId) return;
@@ -478,13 +571,49 @@ const formatDate = (dateString) => {
       setLoading(false);
     }
   };
-  
-  // Fetch data when component mounts or project is approved
-  useEffect(() => {
-    if (project.id && isApproved) {
-      fetchLedgerEntries();
+
+  // Fetch ratings from database
+  const fetchProjectRatings = async () => {
+    if (!projectId) return;
+    
+    try {
+      const response = await fetch(`/api/projects/${projectId}/ratings`, {
+        headers: {
+          'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to load ratings');
+      }
+      
+      const data = await response.json();
+      setRatings(data.ratings || []);
+      setRatingsStats(data.statistics || {});
+    } catch (error) {
+      console.error('Ratings fetch error:', error);
+      showToastMessage('Unable to load ratings', 'error');
     }
-  }, [project.id, isApproved]);
+  };
+  
+  // Fetch data when component mounts or project changes
+  useEffect(() => {
+    if (project.id) {
+      fetchLedgerEntries();
+      if (isApproved) {
+        fetchProjectRatings();
+      }
+    }
+  }, [project.id]);
+
+  // Rebuild status timeline whenever ledger entries change
+  useEffect(() => {
+    if (ledgerEntries.length > 0 || project.id) {
+      const updatedTimeline = buildStatusTimeline(ledgerEntries);
+      setStatusHistory(updatedTimeline);
+    }
+  }, [ledgerEntries, project.id, project.status, project.approvalStatus]);
   
   // ── Handlers ────────────────────────────────────────────────────────────────
   const normalizeProject = (raw) => ({
@@ -734,12 +863,17 @@ const formatDate = (dateString) => {
   };
   
   const handleAddLedgerEntry = (ledgerData) => {
+    console.log('📝 handleAddLedgerEntry called with ledgerData:', ledgerData);
+    
     const mappedEntry = normalizeLedgerEntry({ ...ledgerData, approval_status: ledgerData.approval_status || 'Draft' });
+    console.log('✅ Mapped entry:', mappedEntry);
+    
+    // Update ledger entries - this will trigger the useEffect to rebuild timeline
     setLedgerEntries((prevEntries) => [mappedEntry, ...prevEntries]);
+    
     setShowAddLedgerModal(false);
     resetLedgerForm();
-    // showToastMessage('Ledger entry added successfully', 'success');
-      showToast('Ledger added successfully', 'success');
+    showToast('Ledger added successfully', 'success');
   };
   
   // Open modal for ledger deletion
@@ -769,7 +903,9 @@ const formatDate = (dateString) => {
         throw new Error('Failed to delete ledger entry');
       }
       
+      // Update ledger entries - useEffect will rebuild timeline
       setLedgerEntries(ledgerEntries.filter(e => e.id !== entryToDelete));
+      
       showToastMessage('Ledger entry deleted successfully', 'success');
       setDeleteLedgerModalOpen(false);
       setEntryToDelete(null);
@@ -817,6 +953,7 @@ const formatDate = (dateString) => {
   const handleLedgerEntryUpdate = (updatedEntry) => {
     const mappedEntry = normalizeLedgerEntry(updatedEntry);
     setLedgerEntries((prevEntries) => prevEntries.map(e => e.id === mappedEntry.id ? mappedEntry : e));
+    
     setShowEditLedgerModal(false);
     setSelectedLedger(null);
     showToastMessage('Ledger entry updated successfully', 'success');
@@ -843,7 +980,9 @@ const formatDate = (dateString) => {
       }
       
       const updatedEntry = await response.json();
+      // Update ledger entries - useEffect will rebuild timeline
       setLedgerEntries(ledgerEntries.map(e => e.id === id ? updatedEntry : e));
+      
       showToastMessage('Ledger entry submitted for approval', 'success');
     } catch (error) {
       showToastMessage(error.message || 'Failed to submit ledger entry', 'error');
@@ -944,9 +1083,9 @@ const formatDate = (dateString) => {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm text-gray-500">Project Progress</span>
-                  <span className="text-sm font-medium text-gray-900">{project.progress}%</span>
+                  <span className="text-sm font-medium text-gray-900">{calculateProgressFromDays(project.startDate, project.endDate)}%</span>
                 </div>
-                <Progress value={project.progress} className="h-3" />
+                <Progress value={calculateProgressFromDays(project.startDate, project.endDate)} className="h-3" />
               </div>
             )}
             
@@ -999,6 +1138,7 @@ const formatDate = (dateString) => {
         >
           Overview
         </button>
+      
         
         {isApproved && (
           <>
@@ -1375,38 +1515,34 @@ const formatDate = (dateString) => {
       )}
       
       {/* Tab Content - Status Timeline */}
-      {activeTab === 'status' && isApproved && (
+      {activeTab === 'status' && (
         <div className="space-y-6">
-          <Card className="rounded-[20px] border-0 shadow-sm p-6">
+          <Card className="rounded-[20px] border-0 shadow-sm p-6 bg-gradient-to-br from-white to-purple-50">
             <h2 className="text-lg font-semibold text-gray-900 mb-6">Project Status Timeline</h2>
-            <div className="space-y-6">
-              {statusHistory.map((status, index) => {
-                const colorMap = { 
-                  green: { bg: 'bg-green-100', icon: 'text-green-600', badge: 'bg-green-100 text-green-700' }, 
-                  blue: { bg: 'bg-blue-100', icon: 'text-blue-600', badge: 'bg-blue-100 text-blue-700' }, 
-                  yellow: { bg: 'bg-yellow-100', icon: 'text-yellow-600', badge: 'bg-yellow-100 text-yellow-700' }, 
-                  gray: { bg: 'bg-gray-100', icon: 'text-gray-600', badge: 'bg-gray-100 text-gray-700' } 
-                };
-                const c = colorMap[status.color] || colorMap.gray;
-                return (
-                  <div key={status.id} className="flex gap-4">
-                    <div className="flex flex-col items-center">
-                      <div className={`w-12 h-12 rounded-full flex items-center justify-center ${c.bg}`}>
-                        <CheckCircle className={`w-6 h-6 ${c.icon}`} />
-                      </div>
-                      {index < statusHistory.length - 1 && <div className="w-0.5 flex-1 bg-gray-200 min-h-[60px]" />}
+            <div className="space-y-0">
+              {(statusHistory || []).map((item, index, arr) => (
+                <div key={item.id} className="flex gap-4 items-start relative">
+                  <div className="flex flex-col items-center">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                      item.isCurrent ? 'bg-emerald-500 text-white' : item.isDone ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-600'
+                    }`}>
+                      {item.isDone || item.isCurrent ? <CheckCircle className="w-4 h-4" /> : <Clock className="w-4 h-4" />}
                     </div>
-                    <div className="flex-1 pb-6">
-                      <div className="flex flex-wrap items-center gap-2 mb-2">
-                        <Badge className={`rounded-lg ${c.badge}`}>{status.status}</Badge>
-                        <span className="text-sm text-gray-500">{status.timestamp}</span>
-                      </div>
-                      <p className="text-sm text-gray-600 mb-2">{status.updatedBy} ({status.role})</p>
-                      <p className="text-gray-700">{status.description}</p>
-                    </div>
+                    {index < arr.length - 1 && (
+                      <div className={`w-0.5 h-16 ${item.isDone ? 'bg-blue-400' : 'bg-gray-200'}`} />
+                    )}
                   </div>
-                );
-              })}
+                  <div className={`pb-6 flex-1 ${index !== arr.length - 1 ? 'border-b border-purple-100' : ''}`}>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-semibold text-gray-900">{item.label}</p>
+                      {item.isCurrent && <Badge className="bg-emerald-100 text-emerald-700">Current</Badge>}
+                    </div>
+                    <p className="text-sm text-gray-700">{item.description}</p>
+                    <p className="text-xs text-gray-500 mt-1">{item.date || '-'}</p>
+                  </div>
+                </div>
+              ))}
+              {!statusHistory?.length && <p className="text-gray-500">No status history yet.</p>}
             </div>
           </Card>
         </div>
@@ -1416,49 +1552,63 @@ const formatDate = (dateString) => {
       {activeTab === 'ratings' && isApproved && (
         <div className="space-y-6">
           <Card className="rounded-[20px] border-0 shadow-sm p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Student Ratings</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">Student Ratings & Satisfaction</h2>
+        
             
+            {/* Average Rating Display */}
             <div className="bg-blue-50 rounded-xl p-6 mb-6 text-center">
               <div className="flex items-center justify-center gap-3 mb-2">
-                <span className="text-5xl font-bold text-gray-900">{averageRating.toFixed(1)}</span>
+                <span className="text-5xl font-bold text-gray-900">{ratingsStats.averageRating?.toFixed(1) || '0'}</span>
                 <div>
                   <div className="flex items-center gap-1 mb-1">
                     {[...Array(5)].map((_, i) => (
-                      <Star key={i} className={`w-6 h-6 ${i < Math.round(averageRating) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} />
+                      <Star key={i} className={`w-6 h-6 ${i < Math.round(ratingsStats.averageRating || 0) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} />
                     ))}
                   </div>
-                  <p className="text-sm text-gray-500">{totalRatings} {totalRatings === 1 ? 'rating' : 'ratings'}</p>
+                  <p className="text-sm text-gray-500">{ratingsStats.totalRatings || 0} {ratingsStats.totalRatings === 1 ? 'rating' : 'ratings'}</p>
                 </div>
               </div>
+              {/* <p className="text-sm text-gray-600 mt-2">CSAT Rate: <span className="font-semibold">{ratingsStats.csatRate || 0}%</span></p> */}
             </div>
             
-            <div className="space-y-6">
-              {ratings.map((review) => (
-                <div key={review.id} className="flex gap-4 pb-6 border-b last:border-0">
-                  <Avatar className="w-12 h-12 flex-shrink-0">
-                    <AvatarFallback className="bg-blue-100 text-blue-700 text-sm">
-                      {review.user_name?.split(' ').map((n) => n[0]).join('') || 'U'}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                      <div>
-                        <h3 className="font-medium text-gray-900">{review.user_name}</h3>
-                        <div className="flex items-center gap-2">
-                          <div className="flex items-center gap-1">
-                            {[...Array(5)].map((_, i) => (
-                              <Star key={i} className={`w-4 h-4 ${i < review.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} />
-                            ))}
+            {/* Ratings List */}
+            {ratings.length > 0 ? (
+              <div className="space-y-6">
+                {ratings.map((review) => (
+                  <div key={review.id} className="flex gap-4 pb-6 border-b last:border-0">
+                    <Avatar className="w-12 h-12 flex-shrink-0">
+                      <AvatarFallback className="bg-blue-100 text-blue-700 text-sm">
+                        {review.user_name?.split(' ').map((n) => n[0]).join('') || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                        <div>
+                          <h3 className="font-medium text-gray-900">{review.user_name}</h3>
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1">
+                              {[...Array(5)].map((_, i) => (
+                                <Star key={i} className={`w-4 h-4 ${i < review.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} />
+                              ))}
+                            </div>
+                            <span className="text-sm text-gray-500">{review.created_at}</span>
                           </div>
-                          <span className="text-sm text-gray-500">{review.created_at}</span>
                         </div>
                       </div>
+                      {review.comment && (
+                        <p className="text-gray-700">{review.comment}</p>
+                      )}
                     </div>
-                    <p className="text-gray-700">{review.comment}</p>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <Star className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No ratings yet</h3>
+                <p className="text-gray-500">Ratings will appear here once students rate this project</p>
+              </div>
+            )}
           </Card>
         </div>
       )}

@@ -207,6 +207,38 @@ function CSGProjectsPageInner() {
     fetchProjects();
   }, []);
 
+  // Fetch specific project when selectedProjectId is set and not in projects array
+  useEffect(() => {
+    if (!selectedProjectId) return;
+    
+    const projectExists = projects.some(p => p.id === selectedProjectId);
+    if (!projectExists) {
+      const fetchSpecificProject = async () => {
+        try {
+          const response = await fetch(`/api/projects/${selectedProjectId}`, {
+            headers: {
+              'Accept': 'application/json',
+              'X-Requested-With': 'XMLHttpRequest'
+            }
+          });
+          
+          if (response.ok) {
+            const project = await response.json();
+            // Only add if it's not already in the array
+            setProjects(prev => {
+              const exists = prev.some(p => p.id === project.id);
+              return exists ? prev : [...prev, normalizeProject(project)];
+            });
+          }
+        } catch (error) {
+          console.error('Error fetching specific project:', error);
+        }
+      };
+      
+      fetchSpecificProject();
+    }
+  }, [selectedProjectId]);
+
   useEffect(() => {
     const onPopState = () => {
       const match = window.location.pathname.match(/\/csg\/projects\/(.+)$/);
@@ -389,7 +421,7 @@ function CSGProjectsPageInner() {
   const stats = {
     total: projects.length,
     ongoing: projects.filter((p) => p.status === 'Ongoing').length,
-    completed: projects.filter((p) => p.status === 'Completed').length,
+    completed: projects.filter((p) => p.status === 'Complete').length,
     draft: projects.filter((p) => p.status === 'Draft').length,
   };
 
@@ -426,6 +458,30 @@ function CSGProjectsPageInner() {
       />
     );
   }
+
+  const calculateProgressFromDays = (startDate, endDate) => {
+    if (!startDate || !endDate) return 0;
+    
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const now = new Date();
+    
+    // If project hasn't started yet
+    if (now < start) return 0;
+    
+    // If project is completed
+    if (now > end) return 100;
+    
+    // Calculate total days in project
+    const totalDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+    
+    // Calculate elapsed days
+    const elapsedDays = Math.ceil((now - start) / (1000 * 60 * 60 * 24));
+    
+    // Calculate percentage
+    const percentage = Math.min(Math.round((elapsedDays / totalDays) * 100), 100);
+    return Math.max(percentage, 0);
+  };
 
   const getProjectButton = (project) => {
     if (project.archive) {
@@ -625,12 +681,12 @@ function CSGProjectsPageInner() {
                     {project.status}
                   </Badge>
                 </div>
-                <span className="text-xs font-medium text-gray-900">{project.progress}%</span>
+                <span className="text-xs font-medium text-gray-900">{calculateProgressFromDays(project.startDate, project.endDate)}%</span>
               </div>
               <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-blue-600 rounded-full transition-all"
-                  style={{ width: `${project.progress}%` }}
+                  style={{ width: `${calculateProgressFromDays(project.startDate, project.endDate)}%` }}
                 />
               </div>
             </div>

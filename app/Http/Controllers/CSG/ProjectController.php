@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\CSG\Project;
 use App\Models\CSG\Approval;
 use App\Models\CSG\LedgerEntry;
+use App\Models\User\Rating;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -415,6 +416,67 @@ class ProjectController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Failed to delete file',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getRatings($id)
+    {
+        try {
+            $project = Project::find($id);
+            
+            if (!$project) {
+                return response()->json(['message' => 'Project not found'], 404);
+            }
+            
+            $ratings = Rating::query()
+                ->where('project_id', $id)
+                ->where('archive', false)
+                ->with(['user:id,name'])
+                ->orderByDesc('created_at')
+                ->get()
+                ->map(function (Rating $r) {
+                    return [
+                        'id' => $r->id,
+                        'user_name' => $r->user?->name ?? 'Student',
+                        'rating' => (int) $r->rating_score,
+                        'comment' => (string) ($r->comments ?? ''),
+                        'created_at' => optional($r->created_at)->format('Y-m-d') ?? '',
+                        'helpful' => (int) ($r->helpful_count ?? 0),
+                    ];
+                })->values();
+            
+            // Calculate statistics
+            $total = $ratings->count();
+            $average = $total > 0 ? round($ratings->avg('rating') * 2) / 2 : 0;
+            $distribution = [5 => 0, 4 => 0, 3 => 0, 2 => 0, 1 => 0];
+            
+            foreach ($ratings as $r) {
+                if (isset($distribution[$r['rating']])) {
+                    $distribution[$r['rating']]++;
+                }
+            }
+            
+            // CSAT: 3-5 stars = satisfied, 1-2 stars = not satisfied
+            $satisfied = $distribution[5] + $distribution[4] + $distribution[3];
+            $notSatisfied = $distribution[2] + $distribution[1];
+            $csat = $total > 0 ? (int) round(100 * $satisfied / $total) : 0;
+
+            return response()->json([
+                'ratings' => $ratings,
+                'statistics' => [
+                    'averageRating' => (float) $average,
+                    'totalRatings' => $total,
+                    'ratingDistribution' => $distribution,
+                    'csatRate' => $csat,
+                    'satisfied' => $satisfied,
+                    'notSatisfied' => $notSatisfied,
+                ],
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Failed to fetch ratings',
                 'error' => $e->getMessage()
             ], 500);
         }

@@ -917,7 +917,7 @@ const handleSaveUpload = async () => {
                     <Eye className="w-3.5 h-3.5 mr-1" /> 
                   </Button>
                   
-                  {!entry.is_initial_entry && (entry.status === 'Draft' || entry.status === 'Pending Adviser Approval') && (
+                  {!entry.is_initial_entry && (entry.status === 'Draft' || entry.status === 'Rejected') && (
                     <>
                       <Button
                         variant="ghost"

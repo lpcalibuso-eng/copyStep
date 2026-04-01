@@ -118,14 +118,15 @@ class AdviserApprovalController extends Controller
         $data = $request->validate([
             'type' => 'required|in:project,ledger,proof,meeting',
             'id' => 'required|string',
+            'notes' => 'nullable|string|max:2000',
         ]);
 
         $userId = auth()->id();
 
         match ($data['type']) {
-            'project' => $this->approveProject($data['id'], $userId),
-            'ledger', 'proof' => $this->approveLedger($data['id'], $userId),
-            'meeting' => $this->approveMeeting($data['id']),
+            'project' => $this->approveProject($data['id'], $userId, $data['notes'] ?? ''),
+            'ledger', 'proof' => $this->approveLedger($data['id'], $userId, $data['notes'] ?? ''),
+            'meeting' => $this->approveMeeting($data['id'], $data['notes'] ?? ''),
         };
 
         return back();
@@ -148,7 +149,7 @@ class AdviserApprovalController extends Controller
         return back();
     }
 
-    private function approveProject(string $id, $userId): void
+    private function approveProject(string $id, $userId, string $notes = ''): void
     {
         $project = Project::where('id', $id)->where('archive', false)->firstOrFail();
         $project->update([
@@ -156,6 +157,7 @@ class AdviserApprovalController extends Controller
             'approve_by' => (string) $userId,
             'approved_at' => now(),
             'updated_by' => $userId,
+            'note' => $notes,
         ]);
 
         // Create genesis block in blockchain for this project
@@ -184,6 +186,7 @@ class AdviserApprovalController extends Controller
                 'approved_at' => now(),
                 'updated_by' => $userId,
                 'rejected_at' => null,
+                'note' => $notes,
             ]);
 
             $this->writeAudit(
@@ -249,7 +252,7 @@ class AdviserApprovalController extends Controller
         );
     }
 
-    private function approveLedger(string $id, $userId): void
+    private function approveLedger(string $id, $userId, string $notes = ''): void
     {
         $entry = LedgerEntry::where('id', $id)->firstOrFail();
         $entry->update([
@@ -258,6 +261,7 @@ class AdviserApprovalController extends Controller
             'approved_at' => now(),
             'updated_by' => $userId,
             'rejected_at' => null,
+            'note' => $notes,
         ]);
 
         // Add block to blockchain chain for this project
@@ -302,11 +306,12 @@ class AdviserApprovalController extends Controller
         );
     }
 
-    private function approveMeeting(string $id): void
+    private function approveMeeting(string $id, string $notes = ''): void
     {
         $meeting = Meeting::where('id', $id)->where('archive', false)->firstOrFail();
         $meta = $this->meetingMinutesMeta($meeting);
         $meta['adviser_minutes_status'] = 'approved';
+        $meta['adviser_approval_notes'] = $notes;
         unset($meta['minutes_rejection_reason']);
         $meeting->action_items = json_encode($meta);
         $meeting->save();
@@ -392,6 +397,16 @@ class AdviserApprovalController extends Controller
             'amount' => $p->budget !== null ? (float) $p->budget : null,
             'budget_breakdown' => $p->budget_breakdown ?? null,
             'type' => 'project',
+            'approvalType' => 'project',
+            'objective' => $p->objective ?? 'Not specified',
+            'description' => $p->description ?? 'No description provided',
+            'venue' => $p->venue ?? 'Not specified',
+            'start_date' => $p->start_date ?? null,
+            'end_date' => $p->end_date ?? null,
+            'created_by' => $this->userName($p->created_by),
+            'created_at' => optional($p->created_at)->format('Y-m-d H:i:s') ?? 'N/A',
+            'proposed_by' => $p->proposed_by ?? 'Not specified',
+            'ledger_proof' => $p->ledger_proof ?? null,
         ];
     }
 
@@ -413,6 +428,11 @@ class AdviserApprovalController extends Controller
             'hash' => substr(AdviserLedgerFormatter::ledgerHash($e), 0, 32),
             'budget_breakdown' => $e->budget_breakdown ?? null,
             'type' => 'ledger',
+            'approvalType' => 'ledger',
+            'description' => $e->description ?? 'No description provided',
+            'created_by' => $this->userName($e->created_by),
+            'created_at' => optional($e->created_at)->format('Y-m-d H:i:s') ?? 'N/A',
+            'entry_type' => $e->type ?? 'Expense',
         ];
     }
 

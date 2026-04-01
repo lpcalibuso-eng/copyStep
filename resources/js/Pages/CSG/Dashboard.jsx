@@ -238,6 +238,45 @@ export function CSGOfficerDashboard({ currentView, onNavigate, statistics = {}, 
       });
   };
 
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'Draft':
+        return 'bg-gray-100 text-gray-700';
+      case 'Pending Adviser Approval':
+        return 'bg-yellow-100 text-yellow-700';
+      case 'Ongoing':
+        return 'bg-blue-100 text-blue-700';
+      case 'Complete':
+        return 'bg-green-100 text-green-700';
+      default:
+        return 'bg-gray-100 text-gray-700';
+    }
+  }; 
+
+  const calculateProgressFromDays = (startDate, endDate) => {
+    if (!startDate || !endDate) return 0;
+    
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const now = new Date();
+    
+    // If project hasn't started yet
+    if (now < start) return 0;
+    
+    // If project is completed
+    if (now > end) return 100;
+    
+    // Calculate total days in project
+    const totalDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+    
+    // Calculate elapsed days
+    const elapsedDays = Math.ceil((now - start) / (1000 * 60 * 60 * 24));
+    
+    // Calculate percentage
+    const percentage = Math.min(Math.round((elapsedDays / totalDays) * 100), 100);
+    return Math.max(percentage, 0);
+  };
+
   // STEP 4.1: Handle ledger file upload
   const handleLedgerFileUpload = (e) => {
     const file = e.target.files && e.target.files[0];
@@ -1111,21 +1150,21 @@ export function CSGOfficerDashboard({ currentView, onNavigate, statistics = {}, 
           value={`₱${Number(projectStatusCounts.avgNet).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
           hint="Positive trend"
           icon={<DollarSign />}
-          iconBg="bg-blue-50"
-          iconColor="text-blue-600"
+          iconBg="bg-green-50"
+          iconColor="text-green-600"
         />
         <StatsCard
           title="Avg. Rating"
-          value="4.5"
-          hint="300 rates"
+          value={statistics.averageRating || 0}
+          hint={`${statistics.totalRatings || 0} ratings`}
           icon={<Star />}
           iconBg="bg-yellow-50"
           iconColor="text-yellow-600"
         />
         <StatsCard
           title="Student Satisfaction Rate"
-          value="87%"
-          hint="↑ 8% from last month"
+          value={`${statistics.csatRate || 0}%`}
+          hint="CSAT Score"
           icon={<Users />}
           iconBg="bg-purple-50"
           iconColor="text-purple-600"
@@ -1141,24 +1180,27 @@ export function CSGOfficerDashboard({ currentView, onNavigate, statistics = {}, 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {dashboardProjects && dashboardProjects.length > 0 ? (
             dashboardProjects.slice(0, 4).map((project, index) => (
-              <div key={project.id || index} className="p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+              <div 
+                key={project.id || index} 
+                onClick={() => router.visit(`/csg/projects/${project.id}`)}
+                className="p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors cursor-pointer"
+              >
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <p className="text-sm text-gray-900">{project.title ?? 'Untitled Project'}</p>
                     <p className="text-xs text-gray-500 mt-1">Timeline: {project.start_date ?? 'N/A'} - {project.end_date ?? 'N/A'}</p>
                   </div>
-                  <Badge variant="secondary" className="text-xs">{project.status ?? 'Draft'}</Badge>
+                  <Badge variant="secondary" className={`rounded-lg ${getStatusColor(project.status)}`}>
+                    {project.status ?? 'Draft'}
+                  </Badge>
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-gray-500">Progress</span>
-                    <span className="text-gray-900">{project.progress ?? 0}%</span>
+                    <span className="text-gray-900">{calculateProgressFromDays(project.start_date, project.end_date) ?? 0}%</span>
                   </div>
                   <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
-                    <div className="h-full bg-blue-600 rounded-full transition-all" style={{ width: `${project.progress ?? 0}%` }}></div>
-                  </div>
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-gray-500">Income: ₱{Number(project.income || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} • Expense: ₱{Number(project.expense || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    <div className="h-full bg-blue-600 rounded-full transition-all" style={{ width: `${calculateProgressFromDays(project.start_date, project.end_date) ?? 0}%` }}></div>
                   </div>
                 </div>
               </div>

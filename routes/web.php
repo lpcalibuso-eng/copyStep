@@ -3,6 +3,7 @@
 use App\Http\Controllers\CSG\LedgerEntryController;
 use App\Http\Controllers\CSG\MeetingController;
 use App\Http\Controllers\CSG\ProjectController;
+use App\Http\Controllers\CSG\CSGRatingsController;
 use App\Http\Controllers\Adviser\AdviserApprovalController;
 use App\Http\Controllers\Adviser\AdviserDashboardController;
 use App\Http\Controllers\Adviser\AdviserLedgerController;
@@ -188,9 +189,8 @@ Route::get('/csg/meetings', function () {
     return Inertia::render('CSG/Meetings');
 })->name('csg.meetings');
 
-Route::get('/csg/ratings', function () {
-    return Inertia::render('CSG/Ratings');
-})->name('csg.ratings');
+Route::get('/csg/ratings', [CSGRatingsController::class, 'index'])->name('csg.ratings');
+Route::get('/api/csg/ratings', [CSGRatingsController::class, 'getRatingsData'])->name('api.csg.ratings');
 
 Route::get('/csg/notification', function () {
     return Inertia::render('CSG/Notification');
@@ -234,6 +234,7 @@ Route::prefix('api')->group(function () {
         Route::post('/{id}/archive', [ProjectController::class, 'archive']);
         Route::post('/{id}/submit', [ProjectController::class, 'submitForApproval']);
         Route::get('/{id}/ledger', [ProjectController::class, 'ledgerEntries']);
+        Route::get('/{id}/ratings', [ProjectController::class, 'getRatings']);
         Route::get('/{id}/file', [ProjectController::class, 'getFile']);
         Route::delete('/{id}/file', [ProjectController::class, 'deleteFile']);
     });

@@ -202,10 +202,6 @@ export function RatingsAnalyticsPage() {
       </div>
 
       <Card className="rounded-[20px] border-0 shadow-sm p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Filter className="w-5 h-5 text-gray-600" />
-          <h2 className="text-gray-900">Filters</h2>
-        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="relative">
@@ -259,7 +255,7 @@ export function RatingsAnalyticsPage() {
 
       <Card className="rounded-[20px] border-0 shadow-sm p-6">
         <div className="flex items-center gap-2 mb-6">
-          <BarChart3 className="w-5 h-5 text-gray-600" />
+          {/* <BarChart3 className="w-5 h-5 text-gray-600" /> */}
           <h2 className="text-gray-900">Project Ratings Overview</h2>
         </div>
 
