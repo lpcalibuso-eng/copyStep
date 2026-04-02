@@ -1378,18 +1378,53 @@ const renderAttendees = (attendees) => {
           setSelectedMeeting(null);
         }}
         title="Meeting Minutes"
-        description={selectedMeeting?.title}
+        // description={selectedMeeting?.title}
+        description={"View the meeting details"}
       >
         {selectedMeeting && (
           <div className="space-y-4 pt-6">
-            <div className="bg-blue-50 rounded-xl p-4">
-              <p className="text-sm text-blue-900">
-                <strong>{selectedMeeting.date || selectedMeeting.scheduled_date?.split('T')[0]}</strong> at {selectedMeeting.time || selectedMeeting.scheduled_date?.split('T')[1]?.substring(0, 5)}
-              </p>
+
+            <div className='grid grid-cols-2 gap-4'>
+              <div>
+               <p className="text-sm text-gray-500 mb-1">Meeting Title *</p>
+                <p className="text-base font-medium text-gray-900">{selectedMeeting.title}</p>
+              </div>
+
+              <div>
+                <p className="text-sm text-gray-500 mb-1">Status *</p>
+                 <Badge className={`${getStatusColor(selectedMeeting.status)}`}>
+                  {getStatusIcon(selectedMeeting.status)}
+                  <span>{selectedMeeting.status}</span>
+                </Badge>
+              </div>
+             
+
+
+              <div className='col-span-2'>
+                <p className="text-sm text-gray-500 mb-1">Description *</p>
+                <p className="text-base font-medium text-gray-900 whitespace-pre-wrap">{selectedMeeting.description || 'No description provided'}</p>
+              </div>
+
+              <div>
+  <p className="text-sm text-gray-500 mb-1">Attendees *</p>
+  <p className="text-base font-medium text-gray-900 whitespace-pre-wrap">
+    {selectedMeeting.attendees?.length 
+      ? selectedMeeting.attendees.join(', ')
+      : 'No attendees specified'}
+  </p>
+</div>
+
+        <div>
+                <p className="text-sm text-gray-500 mb-1">Time & Date *</p>
+                <p className="text-base font-medium text-gray-900">
+                  {selectedMeeting.date || selectedMeeting.scheduled_date?.split('T')[0]} at {selectedMeeting.time || selectedMeeting.scheduled_date?.split('T')[1]?.substring(0, 5)}
+                </p>
+              </div>
+
             </div>
          
 
-            <div className="h-64 bg-gray-100 rounded-xl flex items-center justify-center">
+            <div className="h-40 bg-gray-100 rounded-xl flex items-center justify-center">
               <div className="text-center">
                 <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                 <p className="text-gray-600 mb-2 font-medium">{selectedMeeting.minutes_file_name || selectedMeeting.minutesFile || 'Meeting Minutes'}</p>
@@ -1398,7 +1433,7 @@ const renderAttendees = (attendees) => {
             </div>
 
             <div className="flex gap-3 pt-4">
-              <Button className="flex-1 rounded-xl bg-blue-600 hover:bg-blue-700">
+              <Button className="flex-1 rounded-xl text-white bg-blue-600 hover:bg-blue-700">
                 <Download className="w-4 h-4 mr-2" />
                 Download Minutes
               </Button>
