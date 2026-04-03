@@ -21,6 +21,71 @@ export default function StudentProjectDetails({ projectId, onBack, project }) {
     return `/${path}`;
   };
 
+  // Calculate project status based on approval status and dates
+  const getCalculatedStatus = () => {
+    // If not approved yet, show as Draft
+    if (project.approvalStatus !== 'Approved' && project.approval_status !== 'Approved') {
+      return 'Draft';
+    }
+    
+    // If approved, calculate status based on dates
+    const startDate = project.startDate || project.start_date;
+    const endDate = project.endDate || project.end_date;
+    
+    if (!startDate || !endDate) {
+      return 'Draft';
+    }
+    
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      start.setHours(0, 0, 0, 0);
+      end.setHours(0, 0, 0, 0);
+      
+      // Check if dates are valid
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+        return 'Draft';
+      }
+      
+      if (today < start) {
+        return 'Upcoming';
+      } else if (today > end) {
+        return 'Completed';
+      } else if (today >= start && today <= end) {
+        return 'Ongoing';
+      }
+      
+      return 'Draft';
+    } catch (error) {
+      console.error('Error calculating status:', error);
+      return 'Draft';
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'Draft':
+        return 'bg-gray-100 text-gray-700';
+      case 'Upcoming':
+        return 'bg-purple-100 text-purple-700';
+      case 'Ongoing':
+        return 'bg-blue-100 text-blue-700';
+      case 'Completed':
+        return 'bg-green-100 text-green-700';
+      case 'Pending Adviser Approval':
+        return 'bg-yellow-100 text-yellow-700';
+      case 'Approved':
+        return 'bg-blue-100 text-blue-700';
+      case 'Rejected':
+        return 'bg-red-100 text-red-700';
+      default:
+        return 'bg-gray-100 text-gray-700';
+    }
+  };
+
   const handleSubmitRating = async () => {
     if (!rating) return;
 
@@ -78,11 +143,11 @@ export default function StudentProjectDetails({ projectId, onBack, project }) {
                 <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-200">
                   {project.category || 'General'}
                 </Badge>
-                <Badge className="bg-gray-100 text-gray-700">
-                  {project.status || 'Draft'}
+                <Badge className={getStatusColor(getCalculatedStatus())}>
+                  {getCalculatedStatus()}
                 </Badge>
               </div>
-              <p className="text-gray-600 leading-relaxed">{project.description || 'No description available.'}</p>
+              <p className="text-gray-600 leading-relaxed">{project.objective || 'No objective available.'}</p>
             </div>
 
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-2">
@@ -156,7 +221,14 @@ export default function StudentProjectDetails({ projectId, onBack, project }) {
         <Card className="rounded-[20px] border-0 shadow-sm p-6 bg-gradient-to-br from-white to-blue-50">
           <h2 className="text-xl font-bold text-gray-900 mb-4">Overview</h2>
           <div className="rounded-2xl border border-blue-100 bg-white p-4 md:p-5">
-            <p className="text-gray-700 leading-relaxed">{project.description || 'No description available.'}</p>
+            <div className='mb-4'>
+              <p className='text-sm text-gray-500 mb-1'>Project Details *</p>
+            <p className="text-gray-900 truncate">{project.description || 'No description available.'}</p>
+            </div>
+            <div className='mb-4'>
+              <p className='text-sm text-gray-500 mb-1'>Project Proposer *</p>
+              <p className="text-gray-900">{project.proposeBy || 'N/A'}</p>
+            </div>
             <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
               <div className="rounded-xl bg-blue-50 border border-blue-100 p-3">
                 <p className="text-xs text-gray-500">Timeline</p>
@@ -167,15 +239,15 @@ export default function StudentProjectDetails({ projectId, onBack, project }) {
                 <p className="text-sm font-semibold text-gray-900 mt-1">{project.category || 'General'}</p>
               </div>
               <div className="rounded-xl bg-blue-50 border border-blue-100 p-3">
-                <p className="text-xs text-gray-500">Engagement</p>
-                <p className="text-sm font-semibold text-gray-900 mt-1">{project.ratingsCount || 0} community ratings</p>
+                <p className="text-xs text-gray-500">Venue</p>
+                <p className="text-sm font-semibold text-gray-900 mt-1">{project.venue || 'Not specified'}</p>
               </div>
             </div>
           </div>
-          <div className="mt-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* <div className="mt-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="rounded-xl p-4 bg-white border border-blue-100">
               <p className="text-xs text-gray-500">Status</p>
-              <p className="font-semibold text-gray-900 mt-1">{project.status || 'Draft'}</p>
+              <p className="font-semibold text-gray-900 mt-1">{getCalculatedStatus()}</p>
             </div>
             <div className="rounded-xl p-4 bg-white border border-blue-100">
               <p className="text-xs text-gray-500">Approval</p>
@@ -189,7 +261,7 @@ export default function StudentProjectDetails({ projectId, onBack, project }) {
               <p className="text-xs text-gray-500">Ratings</p>
               <p className="font-semibold text-gray-900 mt-1">{project.ratingsCount || 0}</p>
             </div>
-          </div>
+          </div> */}
         </Card>
       )}
 

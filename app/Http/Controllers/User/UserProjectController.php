@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
+use Carbon\Carbon;
 use Inertia\Inertia;
 
 class UserProjectController extends Controller
@@ -174,9 +175,12 @@ class UserProjectController extends Controller
                 'status' => $project->status ?: 'Draft',
                 'approvalStatus' => $project->approval_status ?: 'Pending',
                 'budget' => (float) ($project->budget ?? 0),
-                'startDate' => optional($project->start_date)->format('Y-m-d'),
-                'endDate' => optional($project->end_date)->format('Y-m-d'),
+                'startDate' => optional($project->start_date)->format('F j, Y'),
+                'endDate' => optional($project->end_date)->format('F j, Y'),
                 'averageRating' => round((float) ($project->ratings_avg_rating_score ?? 0), 1),
+                'venue' => $project->venue ?: 'No venue specified.',
+                'objective' => $project->objective ?: 'No objective available.',
+                'proposeBy' => $project->proposed_by ?: 'Not specified',
                 'ratingsCount' => (int) ($project->ratings_count ?? 0),
                 'ratings' => $project->ratings->map(function ($rating) {
                     return [
@@ -409,14 +413,17 @@ class UserProjectController extends Controller
             ->get();
 
         $activeProjects = $allProjects->take(3)->map(function ($project) {
+            $calculatedStatus = $this->calculateProjectStatus($project);
+            $dateProgress = $this->calculateProgressFromDates($project->start_date, $project->end_date);
             return [
                 'id' => $project->id,
                 'title' => $project->title,
-                'status' => $project->status ?: 'Draft',
+                'status' => $calculatedStatus,
                 'rating' => round((float) ($project->ratings_avg_rating_score ?? 0), 1),
                 'participants' => max(1, (int) (($project->ratings_count ?? 0) * 8)),
                 'deadline' => optional($project->end_date)->format('M d, Y') ?: 'TBD',
-                'progress' => $this->statusProgress($project->status),
+                'progress' => $dateProgress !== null ? $dateProgress : $this->statusProgress($calculatedStatus),
+                'startDate' => optional($project->start_date)->format('M d, Y') ?: 'TBD',
             ];
         })->values();
 
@@ -597,6 +604,73 @@ class UserProjectController extends Controller
         };
     }
 
+   private function calculateProgressFromDates($startDate, $endDate): ?int
+{
+    if (!$startDate || !$endDate) {
+        return null;
+    }
+
+    $start = Carbon::parse($startDate)->startOfDay();
+    $end = Carbon::parse($endDate)->endOfDay(); // Use endOfDay for inclusive end date
+    $today = Carbon::today();
+
+    // Validate date range
+    if ($end->lt($start)) {
+        return null;
+    }
+
+    // Project hasn't started yet
+    if ($today->lt($start)) {
+        return 0;
+    }
+
+    // Project has ended
+    if ($today->gt($end)) {
+        return 100;
+    }
+
+    // Calculate total days in project (inclusive)
+    $totalDays = $start->diffInDays($end) + 1; // +1 to make it inclusive
+    
+    // Calculate days elapsed (from start to today, inclusive)
+    $elapsedDays = $start->diffInDays($today) + 1;
+    
+    // Ensure we don't exceed total days
+    $elapsedDays = min($elapsedDays, $totalDays);
+    
+    // Calculate progress percentage
+    $progress = (int) round(($elapsedDays / $totalDays) * 100);
+    
+    // Cap between 0 and 100
+    return min(100, max(0, $progress));
+}
+
+    private function calculateProjectStatus($project): string
+    {
+        // If not approved, show as Draft
+        if ($project->approval_status !== 'Approved') {
+            return 'Draft';
+        }
+
+        $today = now()->startOfDay();
+        $startDate = $project->start_date?->startOfDay();
+        $endDate = $project->end_date?->startOfDay();
+
+        // If no dates set, show as Draft
+        if (!$startDate || !$endDate) {
+            return 'Draft';
+        }
+
+        // Compare dates to determine status
+        if ($today < $startDate) {
+            return 'Upcoming';
+        } elseif ($today > $endDate) {
+            return 'Completed';
+        } else {
+            return 'Ongoing';
+        }
+    }
+
     private function getNotificationsData(?User $user): array
     {
         if (!$user) {
@@ -691,6 +765,8 @@ class UserProjectController extends Controller
                 'budget' => (float) ($project->budget ?? 0),
                 'startDate' => optional($project->start_date)->format('Y-m-d'),
                 'endDate' => optional($project->end_date)->format('Y-m-d'),
+                'objective' => $project->objective ?: 'No objective available.',
+                'venue' => $project->venue ?: 'No venue specified.',
             ];
         })->values();
     }

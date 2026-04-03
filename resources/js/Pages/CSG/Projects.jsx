@@ -381,13 +381,52 @@ function CSGProjectsPageInner() {
     }
   };
 
+  // Calculate project status based on dates
+  const getCalculatedStatus = (project) => {
+    // Get dates from either camelCase or snake_case
+    if (!project.startDate || !project.endDate) {
+      console.log(`Project "${project.title}" - No dates set, returning Draft`);
+      return 'Draft';
+    }
+    
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const startDate = new Date(project.startDate);
+      const endDate = new Date(project.endDate);
+      startDate.setHours(0, 0, 0, 0);
+      endDate.setHours(0, 0, 0, 0);
+      
+      // Check if dates are valid
+      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        console.log(`Project "${project.title}" - Invalid date format`, {startDate: project.startDate, endDate: project.endDate});
+        return 'Draft';
+      }
+      
+      if (today < startDate) {
+        return 'Upcoming';
+      } else if (today > endDate) {
+        return 'Completed';
+      } else if (today >= startDate && today <= endDate) {
+        return 'Ongoing';
+      }
+      
+      return 'Draft';
+    } catch (error) {
+      console.error(`Error calculating status for project "${project.title}":`, error);
+      return 'Draft';
+    }
+  };
+
   // Filter projects
   const filteredProjects = projects.filter((project) => {
     const matchesSearch =
       project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       project.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (project.objective && project.objective.toLowerCase().includes(searchQuery.toLowerCase()));
-    const matchesStatus = filterStatus === 'all' || project.status === filterStatus;
+    const calculatedStatus = getCalculatedStatus(project);
+    const matchesStatus = filterStatus === 'all' || calculatedStatus === filterStatus;
     const matchesApprovalStatus = filterApprovalStatus === 'all' || project.approvalStatus === filterApprovalStatus;
     const matchesCategory = filterCategory === 'all' || project.category === filterCategory;
     return matchesSearch && matchesStatus && matchesApprovalStatus && matchesCategory;
@@ -407,6 +446,8 @@ function CSGProjectsPageInner() {
     switch (status) {
       case 'Draft':
         return 'bg-gray-100 text-gray-700';
+      case 'Upcoming':
+        return 'bg-purple-100 text-purple-700';
       case 'Pending Adviser Approval':
         return 'bg-yellow-100 text-yellow-700';
       case 'Ongoing':
@@ -420,9 +461,9 @@ function CSGProjectsPageInner() {
 
   const stats = {
     total: projects.length,
-    ongoing: projects.filter((p) => p.status === 'Ongoing').length,
-    completed: projects.filter((p) => p.status === 'Complete').length,
-    draft: projects.filter((p) => p.status === 'Draft').length,
+    ongoing: projects.filter((p) => getCalculatedStatus(p) === 'Ongoing').length,
+    completed: projects.filter((p) => getCalculatedStatus(p) === 'Completed').length,
+    draft: projects.filter((p) => getCalculatedStatus(p) === 'Draft').length,
   };
 
   const getApprovalStatusColor = (approvalStatus) => {
@@ -616,6 +657,8 @@ function CSGProjectsPageInner() {
             <Select value={filterStatus} onValueChange={setFilterStatus}>
               <option value="all" disabled>Project Status</option>
               <option value="all">All Projects</option>
+              <option value="Draft">Draft</option>
+              <option value="Upcoming">Upcoming</option>
               <option value="Ongoing">Ongoing</option>
               <option value="Completed">Completed</option>
             </Select>
@@ -677,8 +720,8 @@ function CSGProjectsPageInner() {
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-gray-500">Progress</span>
-                  <Badge className={`rounded-lg ${getStatusColor(project.status)}`}>
-                    {project.status}
+                  <Badge className={`rounded-lg ${getStatusColor(getCalculatedStatus(project))}`}>
+                    {getCalculatedStatus(project)}
                   </Badge>
                 </div>
                 <span className="text-xs font-medium text-gray-900">{calculateProgressFromDays(project.startDate, project.endDate)}%</span>

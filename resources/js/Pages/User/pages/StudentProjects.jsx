@@ -30,8 +30,41 @@ export default function StudentProjectsPage({ onNavigate, onViewDetails, project
     return ['all', ...Array.from(values)];
   }, [projects]);
 
+  const getProjectStatus = (project) => {
+    const now = new Date();
+    const startDate = project?.startDate ? new Date(project.startDate) : null;
+    const endDate = project?.endDate ? new Date(project.endDate) : null;
+
+    if (startDate && !isNaN(startDate.getTime()) && now < startDate) {
+      return 'Upcoming';
+    }
+
+    if (startDate && !isNaN(startDate.getTime()) && endDate && !isNaN(endDate.getTime())) {
+      if (now >= startDate && now <= endDate) {
+        return 'Ongoing';
+      }
+      if (now > endDate) {
+        return 'Completed';
+      }
+      if (now < startDate) {
+        return 'Upcoming';
+      }
+    }
+
+    if (endDate && !isNaN(endDate.getTime()) && now > endDate) {
+      return 'Completed';
+    }
+
+    if (startDate && !isNaN(startDate.getTime()) && now >= startDate) {
+      return 'Ongoing';
+    }
+
+    // Fallback to existing project.status if no dates are available
+    return project?.status ? project.status : 'Draft';
+  };
+
   const statuses = useMemo(() => {
-    const values = new Set(projects.map((p) => (p.status || 'Draft').trim()));
+    const values = new Set(projects.map((p) => getProjectStatus(p).trim()));
     return ['all', ...Array.from(values)];
   }, [projects]);
 
@@ -40,7 +73,7 @@ export default function StudentProjectsPage({ onNavigate, onViewDetails, project
       project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (project.description || '').toLowerCase().includes(searchQuery.toLowerCase());
     const projectCategory = (project.category || 'General').toLowerCase();
-    const projectStatus = (project.status || 'Draft').toLowerCase();
+    const projectStatus = getProjectStatus(project).toLowerCase();
     const matchesCategory = selectedCategory === 'all' || projectCategory === selectedCategory.toLowerCase();
     const matchesStatus = selectedStatus === 'all' || projectStatus === selectedStatus.toLowerCase();
     return matchesSearch && matchesCategory && matchesStatus;
@@ -62,6 +95,27 @@ export default function StudentProjectsPage({ onNavigate, onViewDetails, project
     if (key.includes('cultur')) return { Icon: Music, color: 'from-fuchsia-500 to-pink-700' };
     if (key.includes('social')) return { Icon: Handshake, color: 'from-cyan-500 to-teal-700' };
     return { Icon: FolderKanban, color: 'from-slate-500 to-slate-700' };
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'Draft':
+        return 'bg-gray-100 text-gray-700';
+      case 'Upcoming':
+        return 'bg-purple-100 text-purple-700';
+      case 'Ongoing':
+        return 'bg-blue-100 text-blue-700';
+      case 'Completed':
+        return 'bg-green-100 text-green-700';
+      case 'Pending Adviser Approval':
+        return 'bg-yellow-100 text-yellow-700';
+      case 'Approved':
+        return 'bg-blue-100 text-blue-700';
+      case 'Rejected':
+        return 'bg-red-100 text-red-700';
+      default:
+        return 'bg-gray-100 text-gray-700';
+    }
   };
 
   return (
@@ -143,7 +197,7 @@ export default function StudentProjectsPage({ onNavigate, onViewDetails, project
                   <h3 className="text-gray-900 font-semibold mb-1">{project.title}</h3>
                   <div className="flex items-center gap-2">
                     <Badge className="bg-blue-100 text-blue-700 text-xs">{project.category}</Badge>
-                    <Badge className="bg-gray-100 text-gray-700 text-xs">{project.status || 'Draft'}</Badge>
+                    <Badge className={`${getStatusColor(getProjectStatus(project))} text-xs`}>{getProjectStatus(project)}</Badge>
                   </div>
                 </div>
               </div>

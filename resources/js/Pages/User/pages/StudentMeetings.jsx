@@ -93,12 +93,15 @@ export default function StudentMeetingsPage({ onNavigate, meetingsUpcoming = [],
                 <div className="flex-1">
                   <div className="flex items-start justify-between mb-2">
                     <div>
-                      <h3 className="text-gray-900 font-semibold mb-2">{meeting.title}</h3>
-                      <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-200">{meeting.type}</Badge>
+                      <h3 className="text-gray-900 font-semibold mb-2">
+  {meeting.title}{' '}
+  <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-200">Schedule</Badge>
+</h3>
+                     
                     </div>
                   </div>
 
-                  <p className="text-sm text-gray-600 mb-4">{meeting.description}</p>
+                  {/* <p className="text-sm text-gray-600 mb-4">{meeting.description}</p> */}
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm text-gray-600">
                     <div className="flex items-center gap-2">
@@ -150,9 +153,12 @@ export default function StudentMeetingsPage({ onNavigate, meetingsUpcoming = [],
                 <div className="flex-1">
                   <div className="flex items-start justify-between mb-2">
                     <div>
-                      <h3 className="text-gray-900 font-semibold mb-2">{meeting.title}</h3>
+                      <h3 className="text-gray-900 font-semibold gap-2 mb-2">{meeting.title}
+
+                        <Badge className="bg-gray-100 text-gray-700 hover:bg-gray-200">Completed</Badge>
+                      </h3>
                       <div className="flex gap-2">
-                        <Badge className="bg-gray-100 text-gray-700 hover:bg-gray-200">{meeting.type}</Badge>
+                        
                         {meeting.attended && (
                           <Badge className="bg-green-100 text-green-700 hover:bg-green-200 flex items-center gap-1">
                             <CheckCircle2 className="w-3 h-3" />
@@ -163,7 +169,7 @@ export default function StudentMeetingsPage({ onNavigate, meetingsUpcoming = [],
                     </div>
                   </div>
 
-                  <p className="text-sm text-gray-600 mb-4">{meeting.description}</p>
+                  {/* <p className="text-sm text-gray-600 mb-4">{meeting.description}</p> */}
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm text-gray-600">
                     <div className="flex items-center gap-2">
@@ -185,7 +191,7 @@ export default function StudentMeetingsPage({ onNavigate, meetingsUpcoming = [],
                 <div className="flex md:flex-col gap-2">
                   <button
                     onClick={() => setSelectedMeeting(meeting)}
-                    className="flex-1 md:flex-none px-4 py-2 border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-xl transition-colors font-medium"
+                    className="flex-1 md:flex-none px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-colors font-medium"
                   >
                     View Details
                   </button>
@@ -271,46 +277,22 @@ export default function StudentMeetingsPage({ onNavigate, meetingsUpcoming = [],
             {selectedMeeting.status === 'Scheduled' ? (
               <div>
                 <h3 className="text-gray-900 font-semibold mb-3">Meeting Agenda</h3>
-                <div className="space-y-2">
-                  <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                    <div className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs flex-shrink-0 font-medium">
-                      1
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-900 font-medium">Welcome & Opening Remarks</p>
-                      <p className="text-xs text-gray-500">5 minutes</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                    <div className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs flex-shrink-0 font-medium">
-                      2
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-900 font-medium">Main Discussion</p>
-                      <p className="text-xs text-gray-500">45 minutes</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                    <div className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs flex-shrink-0 font-medium">
-                      3
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-900 font-medium">Q&A Session</p>
-                      <p className="text-xs text-gray-500">30 minutes</p>
-                    </div>
-                  </div>
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <p className="text-gray-600 text-sm">
+                    {selectedMeeting.description}
+                  </p>
                 </div>
               </div>
             ) : (
               <div>
-                <h3 className="text-gray-900 font-semibold mb-3">Meeting Summary</h3>
+                <h3 className="text-gray-900 font-semibold mb-3">Meeting Agenda</h3>
                 <div className="bg-gray-50 rounded-xl p-4">
                   <p className="text-gray-600 text-sm">
-                    The meeting was successfully conducted with strong participation from attendees. 
-                    Key decisions were made regarding project timelines and resource allocation.
-                    {selectedMeeting.minutesAvailable && ' Official minutes are available for download.'}
+                    {selectedMeeting.description}
                   </p>
                 </div>
+               <h3 className="text-gray-900 font-semibold mb-3">Meeting Documentaion</h3>
+                  
               </div>
             )}
 

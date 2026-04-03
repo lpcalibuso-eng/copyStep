@@ -9,6 +9,21 @@ export function StudentDashboardHome({
   upcomingMeetings = [],
   leaderboardSummary = null,
 }) {
+
+const getStatusColor = (status) => {
+  switch (status) {
+    case 'Draft': return 'bg-gray-100 text-gray-700';
+    case 'Upcoming': return 'bg-purple-100 text-purple-700';
+    case 'Pending Adviser Approval': return 'bg-yellow-100 text-yellow-700';
+    case 'Approved':
+    case 'Ongoing': return 'bg-blue-100 text-blue-700';
+    case 'Completed': return 'bg-green-100 text-green-700';
+    case 'Rejected': return 'bg-red-100 text-red-700';
+    default: return 'bg-gray-100 text-gray-700';
+  }
+};
+
+
   return (
     <div className="space-y-6 pb-6">
       {/* Welcome Header */}
@@ -93,15 +108,13 @@ export function StudentDashboardHome({
                 <div className="flex-1">
                   <p className="text-sm text-gray-900 mb-1">{project.title}</p>
                   <div className="flex items-center gap-3 text-xs text-gray-500">
-                    <span>Due: {project.deadline}</span>
-                    <span>•</span>
-                    <span>{project.participants} participants</span>
+                    <span>Timeline: {project.startDate} - {project.deadline}</span>
                   </div>
                 </div>
                 {/* Badge replacement */}
-                <span className="inline-flex items-center rounded-full bg-gray-200 px-2.5 py-0.5 text-xs font-medium text-gray-800">
-                  {project.status}
-                </span>
+               <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getStatusColor(project.status)}`}>
+  {project.status}
+</span>
               </div>
               <div className="flex items-center gap-2 mb-2">
                 <div className="flex items-center gap-1">

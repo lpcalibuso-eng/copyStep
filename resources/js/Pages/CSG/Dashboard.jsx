@@ -41,12 +41,8 @@ import LedgerPage from './Ledger';
 
 // Helper function to calculate status based on dates
 function getAutoStatus(startDate, endDate, approvalStatus) {
-  // If not approved, always show Draft
-  if (approvalStatus !== 'Approved') {
-    return 'Draft';
-  }
-  
-  if (!startDate || !endDate) return 'Approved';
+  // Always calculate status from dates if they exist
+  if (!startDate || !endDate) return 'Draft';
   
   const start = new Date(startDate);
   const end = new Date(endDate);
@@ -65,7 +61,7 @@ function getAutoStatus(startDate, endDate, approvalStatus) {
     return 'Completed';
   }
   
-  return 'Approved';
+  return 'Draft';
 }
 
 // Small inline Badge component (keeps this file self-contained)
@@ -269,6 +265,8 @@ export function CSGOfficerDashboard({ currentView, onNavigate, statistics = {}, 
 
   const getStatusColor = (status) => {
     switch (status) {
+       case 'Upcoming':
+        return 'bg-purple-100 text-purple-700';
       case 'Draft':
         return 'bg-gray-100 text-gray-700';
       case 'Pending Adviser Approval':
@@ -1219,8 +1217,8 @@ export function CSGOfficerDashboard({ currentView, onNavigate, statistics = {}, 
                     <p className="text-sm text-gray-900">{project.title ?? 'Untitled Project'}</p>
                     <p className="text-xs text-gray-500 mt-1">Timeline: {project.start_date ?? 'N/A'} - {project.end_date ?? 'N/A'}</p>
                   </div>
-                  <Badge variant="secondary" className={`rounded-lg ${getStatusColor(project.status)}`}>
-                    {project.status ?? 'Draft'}
+                  <Badge variant="secondary" className={`rounded-lg ${getStatusColor(getAutoStatus(project.start_date, project.end_date, project.approval_status))}`}>
+                    {getAutoStatus(project.start_date, project.end_date, project.approval_status) ?? 'Draft'}
                   </Badge>
                 </div>
                 <div className="space-y-2">

@@ -135,9 +135,52 @@ const mockRatings = [
 ];
 
 // ─── Status / color helpers ──────────────────────────────────────────────────
+
+// Calculate project status based on approval status and dates
+const getCalculatedStatus = (project) => {
+  // If not approved yet, show as Draft
+  if (project.approvalStatus !== 'Approved' && project.approvalStatus !== 'Approved') {
+    return 'Draft';
+  }
+  
+  // If approved, calculate status based on dates
+  if (!project.startDate && !project.endDate) {
+    return 'Draft';
+  }
+  
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const startDate = new Date(project.startDate);
+    const endDate = new Date(project.endDate);
+    startDate.setHours(0, 0, 0, 0);
+    endDate.setHours(0, 0, 0, 0);
+    
+    // Check if dates are valid
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      return 'Draft';
+    }
+    
+    if (today < startDate) {
+      return 'Upcoming';
+    } else if (today > endDate) {
+      return 'Completed';
+    } else if (today >= startDate && today <= endDate) {
+      return 'Ongoing';
+    }
+    
+    return 'Draft';
+  } catch (error) {
+    console.error('Error calculating status:', error);
+    return 'Draft';
+  }
+};
+
 const getStatusColor = (status) => {
   switch (status) {
     case 'Draft': return 'bg-gray-100 text-gray-700';
+    case 'Upcoming': return 'bg-purple-100 text-purple-700';
     case 'Pending Adviser Approval': return 'bg-yellow-100 text-yellow-700';
     case 'Approved':
     case 'Ongoing': return 'bg-blue-100 text-blue-700';
@@ -1075,6 +1118,7 @@ const formatDate = (dateString) => {
               <div className="flex flex-wrap items-center gap-3 mb-3">
                 <h1 className="text-2xl font-semibold text-gray-900">{project.title}</h1>
                 <Badge className={`rounded-lg ${getStatusColor(project.approvalStatus)}`}>{project.approvalStatus}</Badge>
+                <Badge className={`rounded-lg ${getStatusColor(getCalculatedStatus(project))}`}>{getCalculatedStatus(project)}</Badge>
                 {isEditable && <Badge className="rounded-lg bg-purple-100 text-purple-700">Edit Mode</Badge>}
               </div>
               <p className="text-gray-600">{project.description}</p>
