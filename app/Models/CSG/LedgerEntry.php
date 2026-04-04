@@ -27,6 +27,7 @@ class LedgerEntry extends Model
         'updated_by',
         'approved_at',
         'rejected_at',
+        'archive',
         'is_initial_entry', //dinagdag para ma-identify kung initial entry ba ito o hindi kasi ang ginawa ko pagna approved si project auto approved naden si initial entry nya
         'created_at',
         'updated_at',
@@ -39,8 +40,19 @@ class LedgerEntry extends Model
         'rejected_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
+        'archive' => 'integer',
     ];
     
+    public function scopeActive($query)
+    {
+        return $query->where('archive', 0);
+    }
+
+    public function scopeArchived($query)
+    {
+        return $query->where('archive', 1);
+    }
+
     public function project()
     {
         return $this->belongsTo(Project::class, 'project_id');

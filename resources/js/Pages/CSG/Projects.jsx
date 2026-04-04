@@ -383,27 +383,32 @@ function CSGProjectsPageInner() {
 
   // Calculate project status based on dates
   const getCalculatedStatus = (project) => {
+    // If project is not approved, always show Draft
+    if (project.approvalStatus !== 'Approved') {
+      return 'Draft';
+    }
+
     // Get dates from either camelCase or snake_case
     if (!project.startDate || !project.endDate) {
       console.log(`Project "${project.title}" - No dates set, returning Draft`);
       return 'Draft';
     }
-    
+
     try {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      
+
       const startDate = new Date(project.startDate);
       const endDate = new Date(project.endDate);
       startDate.setHours(0, 0, 0, 0);
       endDate.setHours(0, 0, 0, 0);
-      
+
       // Check if dates are valid
       if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
         console.log(`Project "${project.title}" - Invalid date format`, {startDate: project.startDate, endDate: project.endDate});
         return 'Draft';
       }
-      
+
       if (today < startDate) {
         return 'Upcoming';
       } else if (today > endDate) {
@@ -411,7 +416,7 @@ function CSGProjectsPageInner() {
       } else if (today >= startDate && today <= endDate) {
         return 'Ongoing';
       }
-      
+
       return 'Draft';
     } catch (error) {
       console.error(`Error calculating status for project "${project.title}":`, error);

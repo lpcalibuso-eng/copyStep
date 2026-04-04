@@ -15,7 +15,7 @@ class MeetingController extends Controller
     public function all(Request $request)
     {
         try {
-            $query = Meeting::query();
+            $query = Meeting::where('archive', false);
 
             // Optional filters
             if ($request->filled('student_id')) {
@@ -191,15 +191,17 @@ public function update(Request $request, $id)
 }
 
     /**
-     * Delete a meeting
+     * Delete a meeting (soft delete via archive)
      */
     public function destroy($id)
     {
         try {
             $meeting = Meeting::findOrFail($id);
-            $meeting->delete();
+            $meeting->archive = true;
+            $meeting->updated_at = now();
+            $meeting->save();
 
-            return response()->json(['message' => 'Meeting deleted successfully']);
+            return response()->json(['message' => 'Meeting archived successfully']);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Failed to delete meeting',

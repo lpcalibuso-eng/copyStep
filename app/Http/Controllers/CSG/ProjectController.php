@@ -242,8 +242,9 @@ class ProjectController extends Controller
                 Storage::disk('public')->delete($project->project_proof);
             }
 
-            // Delete all associated ledger entries to avoid redundancy and confusion
-            LedgerEntry::where('project_id', $id)->delete();
+            // Archive all associated ledger entries (including initial entry) before project deletion
+            LedgerEntry::where('project_id', $id)
+                ->update(['archive' => 1, 'updated_at' => now()]);
 
             // Delete blockchain chain records for this project
             DB::table('chain')->where('approval_id', $id)->delete();
@@ -271,6 +272,10 @@ class ProjectController extends Controller
             
             $project->archive = 1;
             $project->save();
+
+            // Archive all ledger entries (initial + others) for this project
+            LedgerEntry::where('project_id', $id)
+                ->update(['archive' => 1, 'updated_at' => now()]);
             
             return response()->json(['message' => 'Project archived successfully'], 200);
         } catch (\Exception $e) {
@@ -357,6 +362,7 @@ class ProjectController extends Controller
 
             $ledgerEntries = DB::table('ledger_entries')
                 ->where('project_id', $id)
+                ->where('archive', 0)
                 ->orderBy('created_at', 'asc')
                 ->get();
 

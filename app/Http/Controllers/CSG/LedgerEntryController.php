@@ -21,6 +21,7 @@ class LedgerEntryController extends Controller
     {
         try {
             $entries = LedgerEntry::where('project_id', $projectId)
+                ->where('archive', 0)
                 ->orderBy('created_at', 'desc')
                 ->get();
             
@@ -65,7 +66,7 @@ class LedgerEntryController extends Controller
     public function all(Request $request)
     {
         try {
-            $query = LedgerEntry::query();
+            $query = LedgerEntry::where('archive', 0);
 
             if ($request->filled('project_id')) {
                 $query->where('project_id', $request->input('project_id'));
@@ -290,14 +291,38 @@ class LedgerEntryController extends Controller
     {
         try {
             $entry = LedgerEntry::findOrFail($id);
-            $entry->delete();
+            $entry->archive = 1;
+            $entry->updated_at = now();
+            $entry->save();
             
-            return response()->json(['message' => 'Ledger entry deleted successfully']);
+            return response()->json(['message' => 'Ledger entry archived successfully']);
             
         } catch (\Exception $e) {
-            \Log::error('Ledger entry deletion failed: ' . $e->getMessage());
+            \Log::error('Ledger entry archiving failed: ' . $e->getMessage());
             return response()->json([
-                'message' => 'Failed to delete ledger entry',
+                'message' => 'Failed to archive ledger entry',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Restore an archived ledger entry
+     */
+    public function restore($id)
+    {
+        try {
+            $entry = LedgerEntry::findOrFail($id);
+            $entry->archive = 0;
+            $entry->updated_at = now();
+            $entry->save();
+
+            return response()->json(['message' => 'Ledger entry restored successfully']);
+
+        } catch (\Exception $e) {
+            \Log::error('Ledger entry restore failed: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'Failed to restore ledger entry',
                 'error' => $e->getMessage()
             ], 500);
         }
