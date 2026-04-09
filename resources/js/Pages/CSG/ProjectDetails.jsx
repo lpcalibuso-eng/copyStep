@@ -911,10 +911,14 @@ const formatDate = (dateString) => {
     // If refresh flag is set, fetch fresh data from database instead of adding locally
     if (ledgerData?.refresh) {
       console.log('🔄 Refresh flag detected - fetching fresh data from database...');
+      
+      // Show success toast immediately
+      showToast(ledgerData.message || 'Ledger entry created successfully!', 'success');
+      
       setShowAddLedgerModal(false);
       resetLedgerForm();
       
-      // Wait a moment for the database to be ready, then fetch
+      // Wait a moment for the database to be ready, then fetch fresh data
       setTimeout(() => {
         fetchLedgerEntries();
       }, 500);
