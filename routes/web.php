@@ -20,6 +20,8 @@ use App\Http\Controllers\User\UserProjectController;
 use App\Models\User\Notification;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
+// use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
 Route::get('/', function () {
@@ -249,16 +251,6 @@ Route::prefix('api')->group(function () {
         Route::post('/{id}/submit', [LedgerEntryController::class, 'submitForApproval']);
         Route::post('/{id}/proof', [LedgerEntryController::class, 'uploadProof']);
     });
-});
-
-// In routes/api.php or routes/web.php
-Route::prefix('api')->group(function () {
-    Route::get('/ledger-entries', [LedgerEntryController::class, 'all']);
-    Route::post('/ledger-entries', [LedgerEntryController::class, 'store']);
-    Route::put('/ledger-entries/{id}', [LedgerEntryController::class, 'update']);
-    Route::delete('/ledger-entries/{id}', [LedgerEntryController::class, 'destroy']);
-    Route::post('/ledger-entries/{id}/submit', [LedgerEntryController::class, 'submitForApproval']);
-    Route::post('/ledger-entries/{id}/upload', [LedgerEntryController::class, 'uploadDocument']);
     
     // Meeting Management Routes
     Route::prefix('meetings')->group(function () {
@@ -319,7 +311,7 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::post('/sadmin/notifications/mark-all-read', function () {
-        \App\Models\Notification::where('user_id', auth()->id())
+        \App\Models\Notification::where('user_id', Auth::id())
             ->where('is_read', 0)
             ->update(['is_read' => 1, 'read_at' => now()]);
         return back();
@@ -329,7 +321,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/user/notifications/read/{id}', function ($id) {
         \App\Models\Notification::where('id', $id)
             ->where(function ($q) {
-                $q->where('user_id', auth()->id())->orWhereNull('user_id');
+                $q->where('user_id', Auth::id())->orWhereNull('user_id');
             })
             ->where('archive', 0)
             ->update([
@@ -343,7 +335,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/user/notifications/mark-all-read', function () {
         \App\Models\Notification::where('archive', 0)
             ->where(function ($q) {
-                $q->where('user_id', auth()->id())->orWhereNull('user_id');
+                $q->where('user_id', Auth::id())->orWhereNull('user_id');
             })
             ->where('is_read', 0)
             ->update([
