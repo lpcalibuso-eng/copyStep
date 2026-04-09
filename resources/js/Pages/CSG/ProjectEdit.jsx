@@ -850,13 +850,9 @@ const handleSave = async (e) => {
         toast.success(result?.message || "Entry created successfully!");
         
         // Update the UI via your onSave prop/callback
-        // The controller returns id at the top level, not in data
+        // The controller now returns complete entry data (type, amount, description, etc)
         if (onSave && result) {
-          onSave({
-            success: true,
-            id: result.id,
-            message: result.message
-          });
+          onSave(result);  // Pass the complete result object with all fields
         } else if (onSave) {
           // No data returned but was created (based on 201 status)
           onSave({

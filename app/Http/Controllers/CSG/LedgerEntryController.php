@@ -239,18 +239,21 @@ public function uploadProof(Request $request, $id)
             
             Log::info('Ledger entry created with ID: ' . $entry->id);
             
-            // Return simple response array - Laravel auto-converts to JSON
-            return response([
+            // Return complete entry data so frontend has all fields (type, amount, description, etc)
+            return response()->json([
                 'success' => true,
                 'message' => 'Ledger entry created successfully!',
-                'data' => [
-                    'id' => $entry->id,
-                    'project_id' => $entry->project_id,
-                    'type' => $entry->type,
-                    'description' => $entry->description,
-                    'amount' => (float)$entry->amount,
-                    'approval_status' => $entry->approval_status,
-                ]
+                'id' => $entry->id,
+                'type' => $entry->type,
+                'amount' => $entry->amount,
+                'description' => $entry->description,
+                'approval_status' => $entry->approval_status,
+                'budget_breakdown' => $entry->budget_breakdown ? json_decode($entry->budget_breakdown, true) : [],
+                'ledger_proof' => $entry->ledger_proof,
+                'created_at' => $entry->created_at,
+                'created_by' => $entry->created_by,
+                'project_id' => $entry->project_id,
+                'is_initial_entry' => $entry->is_initial_entry,
             ], 201);
             
         } catch (ValidationException $e) {
