@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\LedgerEntry;
 use App\Models\Project;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 
@@ -41,8 +43,8 @@ class CSGProjectController extends Controller
             'end_date' => $validated['end_date'] ?? null,
             'status' => 'Draft',
             'approval_status' => 'Draft',
-            'created_by' => auth()->id(),
-            'updated_by' => auth()->id(),
+            'created_by' => Auth::id(),
+            'updated_by' => Auth::id(),
             'archive' => 0,
         ]);
 
@@ -65,7 +67,7 @@ class CSGProjectController extends Controller
             'approval_status' => ['nullable', 'string', 'max:50'],
         ]);
 
-        $validated['updated_by'] = auth()->id();
+        $validated['updated_by'] = Auth::id();
         $project->update($validated);
 
         // If budget or budget_breakdown was updated, also update the initial ledger entry
@@ -87,13 +89,13 @@ class CSGProjectController extends Controller
                     }
                     
                     if (!empty($updateData)) {
-                        $updateData['updated_by'] = auth()->id();
+                        $updateData['updated_by'] = Auth::id();
                         $initialEntry->update($updateData);
                     }
                 }
             } catch (\Exception $e) {
                 // Log but don't fail the project update
-                \Log::warning('Could not update initial ledger entry: ' . $e->getMessage());
+                Log::warning('Could not update initial ledger entry: ' . $e->getMessage());
             }
         }
 
@@ -105,7 +107,7 @@ class CSGProjectController extends Controller
         $project = Project::query()->findOrFail($id);
         $project->update([
             'archive' => 1,
-            'updated_by' => auth()->id(),
+            'updated_by' => Auth::id(),
         ]);
 
         return response()->json(['success' => true]);
@@ -137,8 +139,8 @@ class CSGProjectController extends Controller
             'ledger_proof' => $validated['ledger_proof'] ?? null,
             'approval_status' => $validated['approval_status'] ?? 'Draft',
             'note' => $validated['note'] ?? null,
-            'created_by' => auth()->id(),
-            'updated_by' => auth()->id(),
+            'created_by' => Auth::id(),
+            'updated_by' => Auth::id(),
         ]);
 
         return response()->json(['success' => true, 'entry' => $entry], 201);
@@ -161,7 +163,7 @@ class CSGProjectController extends Controller
             'note' => ['nullable', 'string'],
         ]);
 
-        $validated['updated_by'] = auth()->id();
+        $validated['updated_by'] = Auth::id();
         $entry->update($validated);
 
         return response()->json(['success' => true, 'entry' => $entry]);
