@@ -849,20 +849,18 @@ const handleSave = async (e) => {
         // (Server may crash after sending 201 header but before body)
         toast.success(result?.message || "Entry created successfully!");
         
-        // Update the UI via your onSave prop/callback
-        // The controller now returns complete entry data (type, amount, description, etc)
-        if (onSave && result) {
-          onSave(result);  // Pass the complete result object with all fields
-        } else if (onSave) {
-          // No data returned but was created (based on 201 status)
+        // Close the modal FIRST
+        handleClose();
+        
+        // Then call onSave to trigger a fresh fetch from the database
+        if (onSave) {
           onSave({
             success: true,
-            id: 'entry-' + Date.now(),
-            message: 'Entry created successfully'
+            id: result?.id,
+            message: result?.message || 'Entry created successfully',
+            refresh: true  // Signal to fetch fresh data
           });
         }
-        
-        handleClose(); // Close the modal
       } else if (res.status === 422 || res.status === 400) {
         // Validation error - try to parse error details
         console.log('❌ Validation error:', res.status);

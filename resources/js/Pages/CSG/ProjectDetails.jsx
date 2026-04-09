@@ -908,115 +908,29 @@ const formatDate = (dateString) => {
   const handleAddLedgerEntry = async (ledgerData) => {
     console.log('📝 handleAddLedgerEntry called with ledgerData:', ledgerData);
     
+    // If refresh flag is set, fetch fresh data from database instead of adding locally
+    if (ledgerData?.refresh) {
+      console.log('🔄 Refresh flag detected - fetching fresh data from database...');
+      setShowAddLedgerModal(false);
+      resetLedgerForm();
+      
+      // Wait a moment for the database to be ready, then fetch
+      setTimeout(() => {
+        fetchLedgerEntries();
+      }, 500);
+      return;
+    }
+    
+    // Fallback: Add entry locally if no refresh flag
+    const mappedEntry = normalizeLedgerEntry({ ...ledgerData, approval_status: ledgerData.approval_status || 'Draft' });
+    console.log('✅ Mapped entry:', mappedEntry);
+    
+    // Update ledger entries - this will trigger the useEffect to rebuild timeline
+    setLedgerEntries((prevEntries) => [mappedEntry, ...prevEntries]);
+    
     setShowAddLedgerModal(false);
     resetLedgerForm();
-    
-    // The server returns complete entry data (type, amount, description, etc.)
-    if (ledgerData?.id) {
-      try {
-        // If the response already has type, amount, description - use it directly
-        if (ledgerData.type && ledgerData.amount !== undefined && ledgerData.description) {
-          console.log('✅ Using complete entry data from response');
-          
-          const mappedEntry = normalizeLedgerEntry({
-            ...ledgerData,
-            isInitialEntry: ledgerData.description === 'Initial project expense allocation' || ledgerData.is_initial_entry === true,
-          });
-          
-          console.log('✅ New entry mapped:', mappedEntry);
-          
-          // Update ledger entries - prepend the new entry
-          setLedgerEntries((prevEntries) => [mappedEntry, ...prevEntries]);
-          
-          // Also update proof documents if there's a proof
-          if (ledgerData.ledger_proof) {
-            setProofDocuments((prevProofs) => [
-              {
-                id: ledgerData.id,
-                fileName: ledgerData.ledger_proof.split('/').pop(),
-                linkedTransaction: ledgerData.id,
-                uploadDate: ledgerData.created_at ? ledgerData.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
-                fileType: ledgerData.ledger_proof.split('.').pop().toUpperCase(),
-                fileSize: 'Unknown',
-                status: ledgerData.approval_status,
-                hash: ledgerData.id,
-                filePath: ledgerData.ledger_proof,
-              },
-              ...prevProofs
-            ]);
-          }
-          
-          showToast('Ledger entry added successfully', 'success');
-        } else {
-          // Fallback: fetch the complete entry data from server
-          console.log('🔄 Fetching complete entry data for ID:', ledgerData.id);
-          
-          const response = await fetch(`/api/ledger-entries/project/${projectId}`, {
-            headers: {
-              'Accept': 'application/json',
-              'X-Requested-With': 'XMLHttpRequest',
-            },
-          });
-          
-          if (response.ok) {
-            const data = await response.json();
-            
-            // Find the newly created entry (should be first in list)
-            const newEntry = data.find(entry => entry.id === ledgerData.id);
-            
-            if (newEntry) {
-              const mappedEntry = normalizeLedgerEntry({
-                ...newEntry,
-                isInitialEntry: newEntry.description === 'Initial project expense allocation' || newEntry.is_initial_entry === true,
-              });
-              
-              console.log('✅ New entry fetched and mapped:', mappedEntry);
-              
-              // Update ledger entries - prepend the new entry
-              setLedgerEntries((prevEntries) => [mappedEntry, ...prevEntries]);
-              
-              // Also update proof documents if there's a proof
-              if (newEntry.ledger_proof) {
-                setProofDocuments((prevProofs) => [
-                  {
-                    id: newEntry.id,
-                    fileName: newEntry.ledger_proof.split('/').pop(),
-                    linkedTransaction: newEntry.id,
-                    uploadDate: newEntry.created_at ? newEntry.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
-                    fileType: newEntry.ledger_proof.split('.').pop().toUpperCase(),
-                    fileSize: 'Unknown',
-                    status: newEntry.approval_status,
-                    hash: newEntry.id,
-                    filePath: newEntry.ledger_proof,
-                  },
-                  ...prevProofs
-                ]);
-              }
-              
-              showToast('Ledger entry added successfully', 'success');
-            } else {
-              console.warn('⚠️ Entry not found in response');
-              // Fallback: refresh all entries
-              await fetchLedgerEntries();
-              showToast('Ledger entry added (refreshing data)', 'success');
-            }
-          } else {
-            console.error('Failed to fetch entry data:', response.status);
-            // Fallback: refresh all entries
-            await fetchLedgerEntries();
-            showToast('Ledger entry added (refreshing data)', 'success');
-          }
-        }
-      } catch (error) {
-        console.error('Error handling new entry:', error);
-        // Fallback: refresh all entries
-        await fetchLedgerEntries();
-        showToast('Ledger entry added (refreshing data)', 'success');
-      }
-    } else {
-      console.warn('⚠️ No ID returned from server');
-      showToast('Ledger entry added successfully', 'success');
-    }
+    showToast('Ledger added successfully', 'success');
   };
   
   // Open modal for ledger deletion
