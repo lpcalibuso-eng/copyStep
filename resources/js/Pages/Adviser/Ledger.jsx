@@ -20,6 +20,7 @@ import {
   FileCheck,
   ChevronLeft,
   ChevronRight,
+  DollarSign,
 } from 'lucide-react';
 
 function showToast(message, type = 'success') {
@@ -80,7 +81,7 @@ function csvEscape(val) {
 const TABLE_PAGE_SIZE = 5;
 
 export default function LedgerApprovalsPage() {
-  const { ledgerEntries = [], auditTrail = [], projectFilterOptions = [] } = usePage().props;
+  const { ledgerEntries = [], projectFilterOptions = [] } = usePage().props;
 
   const [selectedEntry, setSelectedEntry] = useState(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
@@ -88,29 +89,46 @@ export default function LedgerApprovalsPage() {
   const [isCorrectionDialogOpen, setIsCorrectionDialogOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [correctionReason, setCorrectionReason] = useState('');
-  const [activeTab, setActiveTab] = useState('ledger');
 
   const [filterProject, setFilterProject] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
   const [ledgerPage, setLedgerPage] = useState(1);
-  const [auditPage, setAuditPage] = useState(1);
 
   useEffect(() => {
     setLedgerPage(1);
   }, [filterProject, filterStatus, searchQuery]);
 
-  useEffect(() => {
-    setAuditPage(1);
-  }, [activeTab]);
+  const stats = useMemo(() => {
+    const approvedEntries = ledgerEntries.filter(
+      (e) => e.approvalStatus === 'Approved' && !e.archive
+    );
 
-  const stats = useMemo(() => ({
-    totalIncome: ledgerEntries.filter((e) => e.transactionType === 'Income').reduce((sum, e) => sum + Number(e.amount), 0),
-    totalExpenses: ledgerEntries.filter((e) => e.transactionType === 'Expense').reduce((sum, e) => sum + Number(e.amount), 0),
-    pendingApprovals: ledgerEntries.filter((e) => e.allowAdviserActions).length,
-    correctionCount: ledgerEntries.filter((e) => e.status === 'Corrected').length,
-  }), [ledgerEntries]);
+    const totalIncome = approvedEntries
+      .filter((e) => e.transactionType === 'Income')
+      .reduce((sum, e) => sum + Number(e.amount), 0);
+    const totalExpenses = approvedEntries
+      .filter((e) => e.transactionType === 'Expense')
+      .reduce((sum, e) => sum + Number(e.amount), 0);
+
+    const uniqueProjects = new Set(
+      approvedEntries
+        .map((e) => e.projectName || e.projectId)
+        .filter(Boolean)
+    );
+    const projectCount = uniqueProjects.size;
+
+    return {
+      totalIncome,
+      totalExpenses,
+      pendingApprovals: ledgerEntries.filter((e) => e.allowAdviserActions).length,
+      correctionCount: ledgerEntries.filter((e) => e.status === 'Corrected').length,
+      averageIncome: projectCount ? totalIncome / projectCount : 0,
+      averageExpenses: projectCount ? totalExpenses / projectCount : 0,
+      averageNet: projectCount ? (totalIncome - totalExpenses) / projectCount : 0,
+    };
+  }, [ledgerEntries]);
 
   const handleViewDetails = (entry) => {
     setSelectedEntry(entry);
@@ -208,8 +226,6 @@ export default function LedgerApprovalsPage() {
   const ledgerTotalPages = Math.max(1, Math.ceil(filteredEntries.length / TABLE_PAGE_SIZE));
   const pagedLedger = filteredEntries.slice((ledgerPage - 1) * TABLE_PAGE_SIZE, ledgerPage * TABLE_PAGE_SIZE);
 
-  const auditTotalPages = Math.max(1, Math.ceil(auditTrail.length / TABLE_PAGE_SIZE));
-  const pagedAudit = auditTrail.slice((auditPage - 1) * TABLE_PAGE_SIZE, auditPage * TABLE_PAGE_SIZE);
 
   const handleExport = () => {
     const headers = ['Ledger ID', 'Project', 'Entered By', 'Amount', 'Type', 'Date', 'Status', 'SHA256 Hash'];
@@ -246,12 +262,12 @@ export default function LedgerApprovalsPage() {
             <p className="text-gray-500">Review and verify financial ledger entries</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="p-6 rounded-[20px] border-0 shadow-sm bg-white">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-500">Total Income</p>
-                  <p className="text-2xl text-green-600 mt-1">₱{stats.totalIncome.toLocaleString()}</p>
+                  <p className="text-sm text-gray-500">Average Income</p>
+                  <p className="text-2xl text-green-600 mt-1">₱{stats.averageIncome.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
                   <div className="flex items-center gap-1 mt-1">
                     <TrendingUp className="w-3 h-3 text-green-600" />
                     <p className="text-xs text-green-600">Verified</p>
@@ -265,8 +281,8 @@ export default function LedgerApprovalsPage() {
             <div className="p-6 rounded-[20px] border-0 shadow-sm bg-white">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-500">Total Expenses</p>
-                  <p className="text-2xl text-red-600 mt-1">₱{stats.totalExpenses.toLocaleString()}</p>
+                  <p className="text-sm text-gray-500">Average Expenses</p>
+                  <p className="text-2xl text-red-600 mt-1">₱{stats.averageExpenses.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
                   <div className="flex items-center gap-1 mt-1">
                     <TrendingDown className="w-3 h-3 text-red-600" />
                     <p className="text-xs text-red-600">Tracked</p>
@@ -280,56 +296,20 @@ export default function LedgerApprovalsPage() {
             <div className="p-6 rounded-[20px] border-0 shadow-sm bg-white">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-500">Pending Approvals</p>
-                  <p className="text-2xl text-gray-900 mt-1">{stats.pendingApprovals}</p>
-                  <p className="text-xs text-orange-600 mt-1">Requires action</p>
+                  <p className="text-sm text-gray-500">Average Net Per Project</p>
+                  <p className={`text-2xl mt-1 ${stats.averageNet >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
+                    ₱{stats.averageNet.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">Average net across all active projects</p>
                 </div>
-                <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
-                  <Clock className="w-6 h-6 text-orange-600" />
-                </div>
-              </div>
-            </div>
-            <div className="p-6 rounded-[20px] border-0 shadow-sm bg-white">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-500">Correction Count</p>
-                  <p className="text-2xl text-gray-900 mt-1">{stats.correctionCount}</p>
-                  <p className="text-xs text-purple-600 mt-1">Audit trail maintained</p>
-                </div>
-                <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
-                  <RotateCcw className="w-6 h-6 text-purple-600" />
+                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                  <DollarSign className="w-6 h-6 text-blue-600" />
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="flex gap-4 border-b border-gray-200">
-            <button
-              type="button"
-              onClick={() => setActiveTab('ledger')}
-              className={`pb-3 px-2 text-sm font-medium transition-colors ${
-                activeTab === 'ledger'
-                  ? 'text-blue-600 border-b-2 border-blue-600'
-                  : 'text-gray-500 hover:text-gray-900'
-              }`}
-            >
-              Ledger Entries
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('audit')}
-              className={`pb-3 px-2 text-sm font-medium transition-colors ${
-                activeTab === 'audit'
-                  ? 'text-blue-600 border-b-2 border-blue-600'
-                  : 'text-gray-500 hover:text-gray-900'
-              }`}
-            >
-              Audit Trail
-            </button>
-          </div>
-
-          {activeTab === 'ledger' ? (
-            <>
+          <>
               <div className="p-4 rounded-[20px] border-0 shadow-sm bg-white">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div className="relative">
@@ -363,8 +343,6 @@ export default function LedgerApprovalsPage() {
                     <option value="Pending">Pending</option>
                     <option value="Approved">Approved</option>
                     <option value="Rejected">Rejected</option>
-                    <option value="Corrected">Corrected</option>
-                    <option value="Draft">Draft</option>
                   </select>
 
                   <button
@@ -395,65 +373,73 @@ export default function LedgerApprovalsPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
-                      {pagedLedger.map((entry) => (
-                        <tr key={entry.id} className="hover:bg-gray-50 transition-colors">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center gap-2">
-                              <Hash className="w-4 h-4 text-gray-400" />
-                              <span className="text-sm text-blue-600">{entry.id}</span>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <p className="text-sm text-gray-900">{entry.projectName}</p>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <p className="text-sm text-gray-900">{entry.enteredBy}</p>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <p className={`text-sm ${entry.transactionType === 'Income' ? 'text-green-600' : 'text-red-600'}`}>
-                              {entry.transactionType === 'Income' ? '+' : '-'}₱{Number(entry.amount).toLocaleString()}
-                            </p>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                              entry.transactionType === 'Income' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
-                            }`}>
-                              {entry.transactionType}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <p className="text-sm text-gray-600">{entry.date ? new Date(entry.date).toLocaleDateString() : '—'}</p>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            {getStatusBadge(entry.status)}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center gap-1">
-                              {entry.proofAttached ? (
-                                <>
-                                  <FileCheck className="w-4 h-4 text-green-600" />
-                                  <span className="text-xs text-green-600">{entry.proofFiles?.length || 0}</span>
-                                </>
-                              ) : (
-                                <>
-                                  <AlertTriangle className="w-4 h-4 text-red-600" />
-                                  <span className="text-xs text-red-600">Missing</span>
-                                </>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <button
-                              type="button"
-                              onClick={() => handleViewDetails(entry)}
-                              className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1"
-                            >
-                              <Eye className="w-4 h-4" /> View
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
+  {pagedLedger.length === 0 ? (
+    <tr>
+      <td colSpan={9} className="px-6 py-4 text-center">
+        <p className="text-sm text-gray-500 py-4">No items for the selected filters.</p>
+      </td>
+    </tr>
+  ) : (
+    pagedLedger.map((entry) => (
+      <tr key={entry.id} className="hover:bg-gray-50 transition-colors">
+        <td className="px-6 py-4">
+          <div className="flex items-center gap-2 max-w-[100px]">
+            {/* <Hash className="w-4 h-4 text-gray-400" /> */}
+            <span className="text-sm text-blue-600 truncate">{entry.id}</span>
+          </div>
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap">
+          <p className="text-sm text-gray-900">{entry.projectName}</p>
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap">
+          <p className="text-sm text-gray-900">{entry.enteredBy}</p>
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap">
+          <p className={`text-sm ${entry.transactionType === 'Income' ? 'text-green-600' : 'text-red-600'}`}>
+            {entry.transactionType === 'Income' ? '+' : '-'}₱{Number(entry.amount).toLocaleString()}
+          </p>
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap">
+          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+            entry.transactionType === 'Income' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+          }`}>
+            {entry.transactionType}
+          </span>
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap">
+          <p className="text-sm text-gray-600">{entry.date ? new Date(entry.date).toLocaleDateString() : '—'}</p>
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap">
+          {getStatusBadge(entry.status)}
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap">
+          <div className="flex items-center gap-1">
+            {entry.proofAttached ? (
+              <>
+                <FileCheck className="w-4 h-4 text-green-600" />
+                <span className="text-xs text-green-600">{entry.proofFiles?.length || 0}</span>
+              </>
+            ) : (
+              <>
+                <AlertTriangle className="w-4 h-4 text-red-600" />
+                <span className="text-xs text-red-600">Missing</span>
+              </>
+            )}
+          </div>
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap">
+          <button
+            type="button"
+            onClick={() => handleViewDetails(entry)}
+            className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1"
+          >
+            <Eye className="w-4 h-4" /> View
+          </button>
+        </td>
+      </tr>
+    ))
+  )}
+</tbody>
                   </table>
                 </div>
               </div>
@@ -470,60 +456,6 @@ export default function LedgerApprovalsPage() {
                 </div>
               )}
             </>
-          ) : (
-            <div className="rounded-[20px] border-0 shadow-sm bg-white overflow-hidden">
-              <div className="p-6 border-b border-gray-200">
-                <h2 className="text-gray-900 flex items-center gap-2">
-                  <Activity className="w-5 h-5" />
-                  System Audit Trail
-                </h2>
-                <p className="text-sm text-gray-500 mt-1">Complete history of ledger actions</p>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50 border-b border-gray-200">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Performed By</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Timestamp</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">IP Address</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Details</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {pagedAudit.map((entry) => (
-                      <tr key={entry.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.action}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.performedBy}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-700">
-                            {entry.role}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{entry.timestamp}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <code className="text-xs bg-gray-100 px-2 py-1 rounded">{entry.ipAddress}</code>
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-600">{entry.details}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              {auditTrail.length > TABLE_PAGE_SIZE && (
-                <div className="flex items-center justify-center gap-4 py-4 border-t border-gray-100">
-                  <Button type="button" variant="outline" size="sm" className="rounded-xl" disabled={auditPage <= 1} onClick={() => setAuditPage((p) => Math.max(1, p - 1))}>
-                    <ChevronLeft className="w-4 h-4" />
-                  </Button>
-                  <span className="text-sm text-gray-600">Page {auditPage} of {auditTotalPages}</span>
-                  <Button type="button" variant="outline" size="sm" className="rounded-xl" disabled={auditPage >= auditTotalPages} onClick={() => setAuditPage((p) => Math.min(auditTotalPages, p + 1))}>
-                    <ChevronRight className="w-4 h-4" />
-                  </Button>
-                </div>
-              )}
-            </div>
-          )}
         </div>
       </div>
 
@@ -533,9 +465,15 @@ export default function LedgerApprovalsPage() {
             <div>
               <h4 className="text-sm font-medium text-gray-500 mb-3">Basic Information</h4>
               <div className="space-y-3 pt-3">
-                <div>
+                <div className='grid grid-cols-2 gap-2'>
+                  <div>
                   <p className="text-xs text-gray-500">Ledger ID</p>
                   <p className="text-sm text-blue-600">{selectedEntry.id}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">Project Title</p>
+                  <p className="text-sm text-blue-600">{selectedEntry.projectName}</p>
+                </div>
                 </div>
                 <div>
                   <p className="text-xs text-gray-500">Ledger Hash (SHA256)</p>
@@ -668,7 +606,7 @@ export default function LedgerApprovalsPage() {
               </div>
             </div>
 
-            {selectedEntry.allowAdviserActions && (
+            {/* {selectedEntry.allowAdviserActions && (
               <div className="border-t pt-6 flex flex-col gap-3">
                 <button
                   type="button"
@@ -693,7 +631,7 @@ export default function LedgerApprovalsPage() {
                   <RotateCcw className="w-4 h-4 mr-2 inline" /> Request Correction
                 </button>
               </div>
-            )}
+            )} */}
           </div>
         )}
       </Modal>

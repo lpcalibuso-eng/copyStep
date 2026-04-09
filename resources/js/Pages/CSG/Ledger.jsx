@@ -162,6 +162,7 @@ function LedgerPageInner() {
   const [filterType, setFilterType] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterProject, setFilterProject] = useState('all');
+  const [isLoading, setIsLoading] = useState(false);
 
   const [ledgerEntries, setLedgerEntries] = useState([]);
   const [allProjects, setAllProjects] = useState([]);
@@ -331,6 +332,8 @@ const handleAddEntry = async () => {
       return;
     }
 
+setIsLoading(true);    
+
     // Prepare budget breakdown
     const budgetBreakdown = budgetItems.map(item => ({
       item: item.item,
@@ -412,7 +415,9 @@ const handleAddEntry = async () => {
   } catch (error) {
     console.error('Error adding ledger entry:', error);
     showToast(error.message || 'Failed to add ledger entry', 'error');
-  }
+  } finally {
+      setIsLoading(false);
+    }
 };
 
 // Update handleEditEntry to use API
@@ -1269,9 +1274,9 @@ const handleSaveUpload = async () => {
             <Button 
               onClick={handleAddEntry} 
               className="text-white flex-1 rounded-xl bg-blue-600 hover:bg-blue-700"
-              disabled={!ledgerForm.description || !ledgerForm.project_id || !ledgerForm.type}
+              disabled={!ledgerForm.description || !ledgerForm.project_id || !ledgerForm.type || isLoading}
             >
-              Save Entry
+              {isLoading ? 'Adding...' : 'Save Entry'}
             </Button>
           </div>
         </div>

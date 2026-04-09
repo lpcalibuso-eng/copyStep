@@ -9,10 +9,11 @@ class AdviserLedgerFormatter
 {
     public const CORRECTION_PREFIX = 'Correction requested:';
 
-    public static function ledgerHash(LedgerEntry $entry): string
-    {
-        return hash('sha256', $entry->id . '|' . ($entry->updated_at?->timestamp ?? ''));
-    }
+    // Deprecated: hashes now come from the chain table
+    // public static function ledgerHash(LedgerEntry $entry): string
+    // {
+    //     return hash('sha256', $entry->id . '|' . ($entry->updated_at?->timestamp ?? ''));
+    // }
 
     public static function displayStatus(LedgerEntry $entry): string
     {
@@ -62,7 +63,14 @@ class AdviserLedgerFormatter
             : asset($path);
     }
 
-    public static function toFrontendRow(LedgerEntry $entry, ?LedgerEntry $predecessor, ?string $enteredByName, string $roleLabel): array
+    public static function toFrontendRow(
+        LedgerEntry $entry,
+        ?LedgerEntry $predecessor,
+        ?string $enteredByName,
+        string $roleLabel,
+        $chainBlock = null,
+        $predecessorChainBlock = null
+    ): array
     {
         $proofPath = $entry->ledger_proof;
         $proofAttached = ! empty($proofPath);
@@ -79,6 +87,10 @@ class AdviserLedgerFormatter
 
         $status = self::displayStatus($entry);
         $correctionReason = self::correctionNoteReason($entry->note);
+
+        // Use chain block hashes if available, otherwise fallback to empty strings
+        $ledgerHash = $chainBlock?->hash ?? '';
+        $predecessorHash = $predecessorChainBlock?->hash ?? '';
 
         $verificationState = [
             'submitted' => optional($entry->created_at)->format('Y-m-d h:i A') ?? '',
@@ -100,8 +112,8 @@ class AdviserLedgerFormatter
         return [
             'id' => $entry->id,
             'allowAdviserActions' => $allowAdviserActions,
-            'ledgerHash' => self::ledgerHash($entry),
-            'predecessorHash' => $predecessor ? self::ledgerHash($predecessor) : '',
+            'ledgerHash' => $ledgerHash,
+            'predecessorHash' => $predecessorHash,
             'projectName' => $entry->project?->title ?? 'Unknown Project',
             'projectId' => $entry->project_id,
             'enteredBy' => $enteredByName ?? 'Unknown',
@@ -113,6 +125,7 @@ class AdviserLedgerFormatter
             'date' => optional($entry->created_at)->format('Y-m-d') ?? '',
             'status' => $status,
             'approvalStatus' => $entry->approval_status,
+            'archive' => (bool) $entry->archive,
             'proofAttached' => $proofAttached,
             'proofFiles' => $proofFiles,
             'verificationState' => $verificationState,

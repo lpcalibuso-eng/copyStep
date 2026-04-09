@@ -166,8 +166,8 @@ export default function AdviserApprovalsPage() {
 
   const getTypeIcon = (approvalType) => {
     switch (approvalType) {
-      case 'project': return <DollarSign className="w-5 h-5 text-green-600" />;
-      case 'ledger': return <FolderKanban className="w-5 h-5 text-blue-600" />;
+      case 'project': return <FolderKanban className="w-5 h-5 text-blue-600" />;
+      case 'ledger': return <DollarSign className="w-5 h-5 text-green-600" />;
       default: return <FileText className="w-5 h-5 text-gray-600" />;
     }
   };

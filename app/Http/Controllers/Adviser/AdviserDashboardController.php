@@ -5,24 +5,31 @@ namespace App\Http\Controllers\Adviser;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\CSG\Meeting;
+use App\Models\Student;
 use App\Models\User;
 use App\Models\User\LedgerEntry;
 use App\Models\User\Project;
 use App\Models\User\Rating;
+use Illuminate\Http\Request;
+// use Illuminate\Support\Carbon;
+// use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class AdviserDashboardController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $pendingProjects = Project::query()
             ->where('archive', false)
             ->whereIn('approval_status', ['Pending Adviser Approval', 'Pending Approval'])
             ->count();
 
-        $pendingLedger = LedgerEntry::query()
-            ->where('approval_status', 'Pending Adviser Approval')
+              $pendingLedger = LedgerEntry::query()
+            ->where('archive', false)
+            ->whereIn('approval_status', ['Pending Adviser Approval', 'Pending Approval'])
             ->count();
+
+        $activeCsgCount = Student::where('is_csg', true)->where('csg_is_active', true)->where('archive', false)->count();
 
         $pendingMeetings = Meeting::query()
             ->where('archive', false)
@@ -89,13 +96,14 @@ class AdviserDashboardController extends Controller
         return Inertia::render('Adviser/Dashboard', [
             'stats' => [
                 'pendingApprovals' => $pendingApprovalsTotal,
-                'pendingProjects' => $pendingProjects,
-                'pendingLedger' => $pendingLedger,
+                // 'pendingProjects' => $pendingProjects,
+                // 'pendingLedger' => $pendingLedger,
                 'pendingMeetings' => $pendingMeetings,
                 'avgRating' => $avgRating,
                 'systemAlerts' => min(10, AuditLog::query()->where('archive', false)->where('created_at', '>=', now()->subDay())->where(function ($q) {
                     $q->where('action', 'like', '%reject%')->orWhere('action', 'like', '%Reject%');
                 })->count()),
+                'activeCsgCount' => $activeCsgCount,
             ],
             'approvalQueue' => $queue->take(3)->values(),
             'recentActivity' => $recentActivity,

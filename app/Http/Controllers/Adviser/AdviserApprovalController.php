@@ -425,7 +425,7 @@ class AdviserApprovalController extends Controller
             'status' => $status === 'Rejected' ? 'Rejected' : 'Pending Approval',
             'amount' => (float) $e->amount,
             'project' => $e->project?->title ?? '',
-            'hash' => substr(AdviserLedgerFormatter::ledgerHash($e), 0, 32),
+            'hash' => substr($e->project_id ?? $e->id, 0, 32), // Based on project ID
             'budget_breakdown' => $e->budget_breakdown ?? null,
             'type' => 'ledger',
             'approvalType' => 'ledger',

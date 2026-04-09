@@ -1,26 +1,26 @@
 <?php
 
-use App\Http\Controllers\CSG\LedgerEntryController;
-use App\Http\Controllers\CSG\MeetingController;
-use App\Http\Controllers\CSG\ProjectController;
-use App\Http\Controllers\CSG\CSGRatingsController;
 use App\Http\Controllers\Adviser\AdviserApprovalController;
 use App\Http\Controllers\Adviser\AdviserDashboardController;
 use App\Http\Controllers\Adviser\AdviserLedgerController;
 use App\Http\Controllers\Adviser\AdviserNotificationController;
+use App\Http\Controllers\Adviser\AdviserPermissionController;
 use App\Http\Controllers\Adviser\AdviserRatingsController;
 use App\Http\Controllers\BlockchainController;
-use App\Http\Controllers\SAdmin\SAdminDashboardController;
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\SAdmin\UserManagementController;
-use App\Http\Controllers\CSG\CSGProjectController;
 use App\Http\Controllers\CSG\CSGDashboardController;
+use App\Http\Controllers\CSG\CSGProjectController;
+use App\Http\Controllers\CSG\CSGRatingsController;
+use App\Http\Controllers\CSG\LedgerEntryController;
+use App\Http\Controllers\CSG\MeetingController;
+use App\Http\Controllers\CSG\ProjectController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SAdmin\SAdminDashboardController;
+use App\Http\Controllers\SAdmin\UserManagementController;
 use App\Http\Controllers\User\UserProjectController;
-// use App\Models\Notification;
+use App\Models\User\Notification;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
-use App\Models\User\Notification;
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [
@@ -133,9 +133,9 @@ Route::post('/adviser/ledger/{id}/approve', [AdviserLedgerController::class, 'ap
 Route::post('/adviser/ledger/{id}/reject', [AdviserLedgerController::class, 'reject'])->name('adviser.ledger.reject');
 Route::post('/adviser/ledger/{id}/correction', [AdviserLedgerController::class, 'correction'])->name('adviser.ledger.correction');
 
-Route::get('/adviser/role-permissions', function () {
-    return Inertia::render('Adviser/Permission');
-})->name('adviser.role-permissions');
+Route::get('/adviser/role-permissions', [AdviserPermissionController::class, 'index'])->name('adviser.role-permissions');
+Route::post('/adviser/role-permissions/assign-officer', [AdviserPermissionController::class, 'assignOfficer'])->name('adviser.role-permissions.assign-officer');
+Route::post('/adviser/role-permissions/update', [AdviserPermissionController::class, 'updatePermissions'])->name('adviser.role-permissions.update');
 
 Route::get('/adviser/ratings', [AdviserRatingsController::class, 'index'])->name('adviser.ratings');
 

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Adviser;
 
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
+use App\Models\Chain;
 use App\Models\User;
 use App\Models\User\LedgerEntry;
 use App\Support\AdviserLedgerFormatter;
@@ -20,16 +21,39 @@ class AdviserLedgerController extends Controller
             ->orderBy('created_at', 'asc')
             ->get();
 
+        // Build a map of project_id => chain block (latest block for each project)
+        $chainBlocks = [];
+        foreach ($entries as $entry) {
+            $block = Chain::query()
+                ->where('project_id', $entry->project_id)
+                ->orderByDesc('block_index')
+                ->first();
+            if ($block) {
+                $chainBlocks[$entry->id] = $block;
+            }
+        }
+
         $byId = $entries->keyBy('id');
         $rows = [];
         $prev = null;
+        $prevChain = null;
         foreach ($entries as $entry) {
             $name = $this->userName($entry->created_by);
             /**
              * @var LedgerEntry|null $prev
              */
-            $rows[] = AdviserLedgerFormatter::toFrontendRow($entry, $prev, $name, 'CSG Officer');
+            $currentChain = $chainBlocks[$entry->id] ?? null;
+            $rows[] = AdviserLedgerFormatter::toFrontendRow(
+                $entry,
+                $prev,
+                $name,
+                'CSG Officer',
+                $currentChain,
+                $prevChain,
+                
+            );
             $prev = $entry;
+            $prevChain = $currentChain;
         }
 
         $ordered = collect($rows)->sortByDesc('date')->values()->all();

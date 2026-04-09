@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import ReactDOM from 'react-dom';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head } from '@inertiajs/react';
+import { Head, usePage, router } from '@inertiajs/react';
 import { Card } from '@/Components/ui/card';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
@@ -20,12 +20,16 @@ import {
 } from 'lucide-react';
 
 function showToast(message, type = 'success') {
+  const text = typeof message === 'string'
+    ? message
+    : message?.message || 'An unexpected error occurred';
+
   const id = `simple-toast-${Date.now()}`;
   const el = document.createElement('div');
   el.id = id;
   el.className = 'fixed right-4 bottom-6 z-50 px-4 py-2 rounded shadow text-white';
   el.style.background = type === 'success' ? '#0ea5e9' : '#ef4444';
-  el.textContent = message;
+  el.textContent = text;
   document.body.appendChild(el);
   setTimeout(() => {
     const e = document.getElementById(id);
@@ -130,15 +134,16 @@ function AvatarFallback({ className = '', children, name }) {
     .join(''));
 
   return (
-    <div className={['w-10 h-10 rounded-full bg-gray-100 text-gray-700 flex items-center justify-center text-xs font-medium', className].join(' ')}>
+    <div className={['w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-medium', className].join(' ')}>
       {initials || '?'}
     </div>
   );
 }
 
 export function RolePermissionsPage() {
+  const { users = [], csgOfficerCandidates = [], councilOfficers: initialCouncilOfficers = [], csgPositions: initialCsgPositions = [], roles: initialRoles = [] } = usePage().props;
+
   const [selectedRole, setSelectedRole] = useState('CSG Officer');
-  const [selectedCSGPosition, setSelectedCSGPosition] = useState('president');
   const [activeDelegation, setActiveDelegation] = useState({
     to: 'John Doe',
     until: 'March 15, 2026',
@@ -148,317 +153,36 @@ export function RolePermissionsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPosition, setSelectedPosition] = useState('');
   const [selectedUser, setSelectedUser] = useState(null);
+  const [selectedCSGFilter, setSelectedCSGFilter] = useState('');
 
-  const mockUsers = [
-    { id: '1', name: 'Maria Santos', email: 'maria.santos@kld.edu.ph', studentId: '2021-00123', avatar: 'MS', currentRole: 'Student' },
-    { id: '2', name: 'Carlos De Leon', email: 'carlos.delon@kld.edu.ph', studentId: '2021-00456', avatar: 'CD', currentRole: 'CSG Officer' },
-    { id: '3', name: 'Ana Martinez', email: 'ana.martinez@kld.edu.ph', studentId: '2021-00789', avatar: 'AM', currentRole: 'Student' },
-    { id: '4', name: 'John Reyes', email: 'john.reyes@kld.edu.ph', studentId: '2021-00234', avatar: 'JR', currentRole: 'CSG Officer' },
-    { id: '5', name: 'Sofia Garcia', email: 'sofia.garcia@kld.edu.ph', studentId: '2021-00567', avatar: 'SG', currentRole: 'Student' },
-    { id: '6', name: 'Miguel Torres', email: 'miguel.torres@kld.edu.ph', studentId: '2021-00890', avatar: 'MT', currentRole: 'Student' },
-    { id: '7', name: 'Isabel Cruz', email: 'isabel.cruz@kld.edu.ph', studentId: '2021-00345', avatar: 'IC', currentRole: 'Student' },
-    { id: '8', name: 'Rafael Mendoza', email: 'rafael.mendoza@kld.edu.ph', studentId: '2021-00678', avatar: 'RM', currentRole: 'Student' },
-  ];
-
-  const [councilOfficers, setCouncilOfficers] = useState([
-    { position: 'president', name: 'John Reyes', userId: '4', email: 'john.reyes@kld.edu.ph' },
-    { position: 'vp-internal', name: 'Maria Santos', userId: '1', email: 'maria.santos@kld.edu.ph' },
-    { position: 'treasurer', name: 'Carlos De Leon', userId: '2', email: 'carlos.delon@kld.edu.ph' },
-    { position: 'secretary', name: 'Ana Martinez', userId: '3', email: 'ana.martinez@kld.edu.ph' },
-    { position: 'auditor', name: '', userId: '', email: '' },
-  ]);
-
-  const [csgPositions, setCSGPositions] = useState([
-    {
-      id: 'president',
-      name: 'President',
-      sections: [
-        {
-          category: 'Projects',
-          permissions: [
-            { id: 'proj_view', label: 'View', enabled: true },
-            { id: 'proj_create', label: 'Create', enabled: true },
-            { id: 'proj_edit', label: 'Edit', enabled: true },
-            { id: 'proj_delete', label: 'Delete', enabled: true },
-            { id: 'proj_approve', label: 'Approve', enabled: false },
-            { id: 'proj_rate', label: 'Rate', enabled: true },
-          ],
-        },
-        {
-          category: 'Ledger',
-          permissions: [
-            { id: 'ledger_view', label: 'View', enabled: true },
-            { id: 'ledger_create', label: 'Create', enabled: true },
-            { id: 'ledger_edit', label: 'Edit', enabled: true },
-            { id: 'ledger_delete', label: 'Delete', enabled: true },
-            { id: 'ledger_approve', label: 'Approve', enabled: false },
-            { id: 'ledger_submit', label: 'Submit', enabled: true },
-          ],
-        },
-        {
-          category: 'Proof',
-          permissions: [
-            { id: 'proof_view', label: 'View', enabled: true },
-            { id: 'proof_upload', label: 'Upload', enabled: true },
-            { id: 'proof_delete', label: 'Delete', enabled: true },
-            { id: 'proof_verify', label: 'Verify', enabled: false },
-          ],
-        },
-      ],
-    },
-    {
-      id: 'vp-internal',
-      name: 'Vice President - Internal',
-      sections: [
-        {
-          category: 'Projects',
-          permissions: [
-            { id: 'proj_view', label: 'View', enabled: true },
-            { id: 'proj_create', label: 'Create', enabled: true },
-            { id: 'proj_edit', label: 'Edit', enabled: true },
-            { id: 'proj_delete', label: 'Delete', enabled: false },
-            { id: 'proj_approve', label: 'Approve', enabled: false },
-            { id: 'proj_rate', label: 'Rate', enabled: true },
-          ],
-        },
-        {
-          category: 'Ledger',
-          permissions: [
-            { id: 'ledger_view', label: 'View', enabled: true },
-            { id: 'ledger_create', label: 'Create', enabled: true },
-            { id: 'ledger_edit', label: 'Edit', enabled: true },
-            { id: 'ledger_delete', label: 'Delete', enabled: false },
-            { id: 'ledger_approve', label: 'Approve', enabled: false },
-            { id: 'ledger_submit', label: 'Submit', enabled: true },
-          ],
-        },
-        {
-          category: 'Proof',
-          permissions: [
-            { id: 'proof_view', label: 'View', enabled: true },
-            { id: 'proof_upload', label: 'Upload', enabled: true },
-            { id: 'proof_delete', label: 'Delete', enabled: false },
-            { id: 'proof_verify', label: 'Verify', enabled: false },
-          ],
-        },
-      ],
-    },
-    {
-      id: 'treasurer',
-      name: 'Treasurer',
-      sections: [
-        {
-          category: 'Projects',
-          permissions: [
-            { id: 'proj_view', label: 'View', enabled: true },
-            { id: 'proj_create', label: 'Create', enabled: false },
-            { id: 'proj_edit', label: 'Edit', enabled: false },
-            { id: 'proj_delete', label: 'Delete', enabled: false },
-            { id: 'proj_approve', label: 'Approve', enabled: false },
-            { id: 'proj_rate', label: 'Rate', enabled: true },
-          ],
-        },
-        {
-          category: 'Ledger',
-          permissions: [
-            { id: 'ledger_view', label: 'View', enabled: true },
-            { id: 'ledger_create', label: 'Create', enabled: true },
-            { id: 'ledger_edit', label: 'Edit', enabled: true },
-            { id: 'ledger_delete', label: 'Delete', enabled: true },
-            { id: 'ledger_approve', label: 'Approve', enabled: false },
-            { id: 'ledger_submit', label: 'Submit', enabled: true },
-          ],
-        },
-        {
-          category: 'Proof',
-          permissions: [
-            { id: 'proof_view', label: 'View', enabled: true },
-            { id: 'proof_upload', label: 'Upload', enabled: true },
-            { id: 'proof_delete', label: 'Delete', enabled: true },
-            { id: 'proof_verify', label: 'Verify', enabled: false },
-          ],
-        },
-      ],
-    },
-    {
-      id: 'secretary',
-      name: 'Secretary',
-      sections: [
-        {
-          category: 'Projects',
-          permissions: [
-            { id: 'proj_view', label: 'View', enabled: true },
-            { id: 'proj_create', label: 'Create', enabled: true },
-            { id: 'proj_edit', label: 'Edit', enabled: true },
-            { id: 'proj_delete', label: 'Delete', enabled: false },
-            { id: 'proj_approve', label: 'Approve', enabled: false },
-            { id: 'proj_rate', label: 'Rate', enabled: true },
-          ],
-        },
-        {
-          category: 'Ledger',
-          permissions: [
-            { id: 'ledger_view', label: 'View', enabled: true },
-            { id: 'ledger_create', label: 'Create', enabled: false },
-            { id: 'ledger_edit', label: 'Edit', enabled: false },
-            { id: 'ledger_delete', label: 'Delete', enabled: false },
-            { id: 'ledger_approve', label: 'Approve', enabled: false },
-            { id: 'ledger_submit', label: 'Submit', enabled: false },
-          ],
-        },
-        {
-          category: 'Proof',
-          permissions: [
-            { id: 'proof_view', label: 'View', enabled: true },
-            { id: 'proof_upload', label: 'Upload', enabled: true },
-            { id: 'proof_delete', label: 'Delete', enabled: false },
-            { id: 'proof_verify', label: 'Verify', enabled: false },
-          ],
-        },
-      ],
-    },
-    {
-      id: 'auditor',
-      name: 'Auditor',
-      sections: [
-        {
-          category: 'Projects',
-          permissions: [
-            { id: 'proj_view', label: 'View', enabled: true },
-            { id: 'proj_create', label: 'Create', enabled: false },
-            { id: 'proj_edit', label: 'Edit', enabled: false },
-            { id: 'proj_delete', label: 'Delete', enabled: false },
-            { id: 'proj_approve', label: 'Approve', enabled: false },
-            { id: 'proj_rate', label: 'Rate', enabled: true },
-          ],
-        },
-        {
-          category: 'Ledger',
-          permissions: [
-            { id: 'ledger_view', label: 'View', enabled: true },
-            { id: 'ledger_create', label: 'Create', enabled: false },
-            { id: 'ledger_edit', label: 'Edit', enabled: false },
-            { id: 'ledger_delete', label: 'Delete', enabled: false },
-            { id: 'ledger_approve', label: 'Approve', enabled: false },
-            { id: 'ledger_submit', label: 'Submit', enabled: false },
-          ],
-        },
-        {
-          category: 'Proof',
-          permissions: [
-            { id: 'proof_view', label: 'View', enabled: true },
-            { id: 'proof_upload', label: 'Upload', enabled: false },
-            { id: 'proof_delete', label: 'Delete', enabled: false },
-            { id: 'proof_verify', label: 'Verify', enabled: true },
-          ],
-        },
-      ],
-    },
-  ]);
-
-  const roles = [
-    {
-      name: 'Superadmin',
-      description: 'Full system access with all permissions',
-      totalPermissions: 43,
-      isEditable: false,
-      sections: [
-        {
-          category: 'System',
-          permissions: [
-            { id: 'sys_view', label: 'View', enabled: true },
-            { id: 'sys_create', label: 'Create', enabled: true },
-            { id: 'sys_edit', label: 'Edit', enabled: true },
-            { id: 'sys_delete', label: 'Delete', enabled: true },
-            { id: 'sys_manage', label: 'Manage Users', enabled: true },
-          ],
-        },
-        {
-          category: 'All Modules',
-          permissions: [{ id: 'all_access', label: 'Full Access', enabled: true }],
-        },
-      ],
-    },
-    {
-      name: 'Admin/Adviser',
-      description: 'Approval authority and oversight capabilities',
-      totalPermissions: 14,
-      isEditable: false,
-      sections: [
-        {
-          category: 'Projects',
-          permissions: [
-            { id: 'proj_view', label: 'View', enabled: true },
-            { id: 'proj_approve', label: 'Approve', enabled: true },
-          ],
-        },
-        {
-          category: 'Ledger',
-          permissions: [
-            { id: 'ledger_view', label: 'View', enabled: true },
-            { id: 'ledger_approve', label: 'Approve', enabled: true },
-            { id: 'ledger_verify', label: 'Verify', enabled: true },
-          ],
-        },
-        {
-          category: 'Permissions',
-          permissions: [
-            { id: 'perm_manage', label: 'Manage CSG Permissions', enabled: true },
-            { id: 'perm_delegate', label: 'Delegate Authority', enabled: true },
-          ],
-        },
-      ],
-    },
-    {
-      name: 'CSG Officer',
-      description: 'Create projects, manage ledger, and upload proofs',
-      totalPermissions: 18,
-      isEditable: true,
-      sections: [],
-    },
-    {
-      name: 'Student',
-      description: 'Read-only access with engagement features',
-      totalPermissions: 8,
-      isEditable: true,
-      sections: [
-        {
-          category: 'Projects',
-          permissions: [
-            { id: 'proj_view', label: 'View', enabled: true },
-            { id: 'proj_rate', label: 'Rate', enabled: true },
-          ],
-        },
-        {
-          category: 'Engagement',
-          permissions: [
-            { id: 'engage_view', label: 'View Points', enabled: true },
-            { id: 'engage_badges', label: 'View Badges', enabled: true },
-            { id: 'engage_leaderboard', label: 'View Leaderboard', enabled: true },
-          ],
-        },
-      ],
-    },
-  ];
-
-  const [rolePermissions, setRolePermissions] = useState(roles);
+  const [councilOfficers, setCouncilOfficers] = useState(initialCouncilOfficers);
+  const [csgPositions, setCSGPositions] = useState(initialCsgPositions);
+  const [rolePermissions, setRolePermissions] = useState(initialRoles);
+  const [selectedPositionCard, setSelectedPositionCard] = useState(null);
 
   const filteredUsers = useMemo(() => {
     const q = (searchQuery || '').toLowerCase();
-    if (!q) return mockUsers;
-    return mockUsers.filter(user =>
-      user.name.toLowerCase().includes(q) ||
-      user.email.toLowerCase().includes(q) ||
-      user.studentId.includes(searchQuery)
+    if (!q) return csgOfficerCandidates;
+    return csgOfficerCandidates.filter(user =>
+      user.name.toLowerCase().includes(q) 
+      ||
+      String(user.studentId).toLowerCase().includes(q)
     );
-  }, [mockUsers, searchQuery]);
+  }, [csgOfficerCandidates, searchQuery]);
+
+  useEffect(() => {
+    if (!selectedCSGFilter && csgPositions.length > 0) {
+      setSelectedCSGFilter(csgPositions[0].id);
+    }
+  }, [csgPositions, selectedCSGFilter]);
+
+  const selectedCsgPosition = csgPositions.find(pos => pos.id === selectedCSGFilter);
 
   const getCurrentRoleData = () => {
     if (selectedRole === 'CSG Officer') {
-      const position = csgPositions.find(p => p.id === selectedCSGPosition);
       return {
-        sections: position?.sections || [],
-        name: `${selectedRole} - ${position?.name}`,
+        sections: selectedCsgPosition?.sections || [],
+        name: `CSG Officer - ${selectedCsgPosition?.name || 'Position'}`,
       };
     }
 
@@ -469,13 +193,14 @@ export function RolePermissionsPage() {
   const currentData = getCurrentRoleData();
   const currentRole = rolePermissions.find(r => r.name === selectedRole);
 
-  const enabledCount = currentData.sections.reduce(
-    (sum, section) => sum + section.permissions.filter(p => p.enabled).length,
-    0
-  );
-  const totalCount = currentRole?.totalPermissions || 0;
+  const enabledCount = selectedRole === 'CSG Officer'
+    ? selectedCsgPosition?.sections.reduce((sum, section) => sum + section.permissions.filter(p => p.enabled).length, 0) || 0
+    : currentData.sections.reduce((sum, section) => sum + section.permissions.filter(p => p.enabled).length, 0);
+  const totalCount = selectedRole === 'CSG Officer'
+    ? selectedCsgPosition?.sections.reduce((sum, section) => sum + section.permissions.length, 0) || 0
+    : currentRole?.totalPermissions || 0;
 
-  const handleTogglePermission = (sectionIndex, permissionId) => {
+  const handleTogglePermission = (positionId, sectionIndex, permissionId) => {
     if (!currentRole?.isEditable) {
       showToast('This role cannot be modified', 'error');
       return;
@@ -484,7 +209,7 @@ export function RolePermissionsPage() {
     if (selectedRole === 'CSG Officer') {
       setCSGPositions(prevPositions =>
         prevPositions.map(position => {
-          if (position.id !== selectedCSGPosition) return position;
+          if (position.id !== positionId) return position;
           return {
             ...position,
             sections: position.sections.map((section, idx) => {
@@ -526,7 +251,17 @@ export function RolePermissionsPage() {
   };
 
   const handleSave = () => {
-    showToast('Permissions saved successfully');
+    router.post('/adviser/role-permissions/update', {
+      csgPositions,
+      rolePermissions,
+    }, {
+      onSuccess: () => {
+        showToast('Permissions saved successfully');
+      },
+      onError: (error) => {
+        showToast(error?.message || 'Failed to save permissions', 'error');
+      }
+    });
   };
 
   const handleSetOfficer = () => {
@@ -535,23 +270,31 @@ export function RolePermissionsPage() {
       return;
     }
 
-    const user = mockUsers.find(u => u.id === selectedUser);
-    const position = csgPositions.find(p => p.id === selectedPosition);
-    if (!user || !position) return;
+    const selectedCandidate = csgOfficerCandidates.find(u => u.id === selectedUser);
+    if (!selectedCandidate) return;
 
-    setCouncilOfficers(prev =>
-      prev.map(officer =>
-        officer.position === selectedPosition
-          ? { position: selectedPosition, name: user.name, userId: user.id, email: user.email }
-          : officer
-      )
-    );
-
-    showToast(`${user.name} has been assigned as ${position.name}`);
-    setSelectedUser(null);
-    setSelectedPosition('');
-    setSearchQuery('');
-    setIsSetOfficerModalOpen(false);
+    router.post('/adviser/role-permissions/assign-officer', {
+      position: selectedPosition,
+      userId: selectedUser,
+    }, {
+      onSuccess: () => {
+        setCouncilOfficers(prev =>
+          prev.map(officer =>
+            officer.position === selectedPosition
+              ? { position: selectedPosition, name: selectedCandidate.name, userId: selectedCandidate.id, email: selectedCandidate.email }
+              : officer
+          )
+        );
+        showToast(`${selectedCandidate.name} has been assigned as ${selectedPosition}`);
+        setSelectedUser(null);
+        setSelectedPosition('');
+        setSearchQuery('');
+        setIsSetOfficerModalOpen(false);
+      },
+      onError: (error) => {
+        showToast(error?.message || 'Failed to assign officer', 'error');
+      }
+    });
   };
 
   return (
@@ -562,40 +305,17 @@ export function RolePermissionsPage() {
             <p className="text-gray-500">Configure role-based access control</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-3">
-          <Button onClick={handleReset} variant="outline" className="border-gray-300 text-gray-700 hover:bg-gray-50">
+          {/* <Button onClick={handleReset} variant="outline" className="border-gray-300 text-gray-700 hover:bg-gray-50">
             <RotateCcw className="w-4 h-4 mr-2" />
             Reset to Default
           </Button>
           <Button onClick={handleSave} className="bg-[#2563EB] hover:bg-blue-700 text-white">
             <Save className="w-4 h-4 mr-2" />
             Save Changes
-          </Button>
+          </Button> */}
         </div>
       </div>
 
-      {activeDelegation && selectedRole === 'CSG Officer' && (
-        <Card className="p-4 rounded-[20px] border-0 shadow-sm bg-gradient-to-r from-orange-50 to-orange-100 border-l-4 border-orange-500">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center flex-shrink-0">
-              <AlertCircle className="w-5 h-5 text-white" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm text-gray-900">
-                <strong>Delegation Active</strong> — Financial authority temporarily assigned to{' '}
-                <strong>{activeDelegation.to}</strong> until <strong>{activeDelegation.until}</strong>
-              </p>
-            </div>
-            <Button
-              onClick={() => setActiveDelegation(null)}
-              variant="outline"
-              size="sm"
-              className="border-orange-600 text-orange-600 hover:bg-orange-600 hover:text-white"
-            >
-              End Delegation
-            </Button>
-          </div>
-        </Card>
-      )}
 
       <Card className="p-6 rounded-[20px] border-0 shadow-sm bg-white">
         <div className="flex items-center justify-between mb-4">
@@ -606,7 +326,11 @@ export function RolePermissionsPage() {
             </h2>
             <p className="text-sm text-gray-500 mt-1">Manage and assign council officer positions</p>
           </div>
-          <Button onClick={() => setIsSetOfficerModalOpen(true)} className="bg-[#2563EB] hover:bg-blue-700 text-white">
+          <Button onClick={() => {
+            setIsSetOfficerModalOpen(true);
+            setSelectedPositionCard(officer.position);
+            setSelectedPosition(officer.position);
+          }} className="bg-[#2563EB] hover:bg-blue-700 text-white">
             <UserPlus className="w-4 h-4 mr-2" />
             Set New Officer
           </Button>
@@ -632,8 +356,8 @@ export function RolePermissionsPage() {
                       </div>
                     ) : (
                       <Avatar className="w-10 h-10">
-                        <AvatarFallback className="bg-[#2563EB] text-white text-xs">
-                          {mockUsers.find(u => u.id === officer.userId)?.avatar || '--'}
+                        <AvatarFallback className="bg-[#0065FF] text-white text-xs">
+                          {users.find(u => u.id === officer.userId)?.avatar || '--'}
                         </AvatarFallback>
                       </Avatar>
                     )}
@@ -647,8 +371,11 @@ export function RolePermissionsPage() {
                 </div>
 
                 {isVacant ? (
-                  <div className="text-center py-2">
+                  <div className="py-2">
                     <p className="text-xs text-gray-400">No officer assigned</p>
+                    <p className="text-xs text-gray-400 ">No email available</p>
+                    <p className="text-xs text-gray-400">No student ID available</p>
+                     <div className="mt-3 border-t border-gray-200">
                     <Button
                       onClick={() => {
                         setSelectedPosition(officer.position);
@@ -661,11 +388,13 @@ export function RolePermissionsPage() {
                       <UserPlus className="w-3 h-3 mr-1" />
                       Assign Officer
                     </Button>
+                    </div>
                   </div>
                 ) : (
                   <div>
                     <p className="text-sm text-gray-900 mb-1">{officer.name}</p>
                     <p className="text-xs text-gray-500">{officer.email}</p>
+                    <p className="text-xs text-gray-500">{officer.userId}</p>
                     <div className="mt-3 pt-3 border-t border-gray-200">
                       <Button
                         onClick={() => {
@@ -697,7 +426,6 @@ export function RolePermissionsPage() {
                 key={role.name}
                 onClick={() => {
                   setSelectedRole(role.name);
-                  if (role.name === 'CSG Officer') setSelectedCSGPosition('president');
                 }}
                 className={`p-4 rounded-[20px] border-2 cursor-pointer transition-all ${
                   isSelected ? 'border-[#2563EB] bg-blue-50 shadow-md' : 'border-gray-200 bg-white hover:border-blue-300'
@@ -761,57 +489,100 @@ export function RolePermissionsPage() {
                 <div className="flex items-center gap-3">
                   <Users className="w-5 h-5 text-[#2563EB] flex-shrink-0" />
                   <div className="flex-1">
-                    <label className="text-sm text-gray-700 mb-2 block">Select CSG Position to Configure</label>
-                    <Select value={selectedCSGPosition} onValueChange={setSelectedCSGPosition} 
-          className="w-full h-10 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:border-gray-300 focus:ring-2 focus:ring-gray-200 outline-none transition"
-          >
-                      {csgPositions.map(position => (
-                        <SelectItem key={position.id} value={position.id}>
-                          {position.name}
-                        </SelectItem>
-                      ))}
-                    </Select>
+                    <p className="text-sm text-gray-700">
+                      Configure permissions for each CSG officer position. Each position has different access levels based on their responsibilities.
+                    </p>
                   </div>
                 </div>
-                <p className="text-xs text-gray-600 mt-3">
-                  Configure permissions for each CSG officer position individually. Each position can have different access levels.
-                </p>
               </div>
             )}
 
             <div className="space-y-6">
-              {currentData.sections.map((section, sectionIndex) => (
-                <div key={section.category}>
-                  <h3 className="text-sm text-gray-900 mb-3 flex items-center gap-2">
-                    <div className="w-1 h-4 bg-[#2563EB] rounded"></div>
-                    {section.category}
-                  </h3>
-                  <div className="space-y-3 ml-3">
-                    {section.permissions.map((permission) => (
-                      <div
-                        key={permission.id}
-                        className={`flex items-center justify-between p-3 rounded-xl transition-colors ${
-                          currentRole?.isEditable ? 'hover:bg-gray-50' : 'bg-gray-50 opacity-75'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${permission.enabled ? 'bg-green-100' : 'bg-gray-100'}`}>
-                            {permission.enabled ? <Check className="w-4 h-4 text-green-600" /> : <span className="text-gray-400 text-sm">✕</span>}
-                          </div>
-                          <span className={`text-sm ${permission.enabled ? 'text-gray-900' : 'text-gray-500'}`}>{permission.label}</span>
-                          {!currentRole?.isEditable && <Lock className="w-3 h-3 text-gray-400" />}
-                        </div>
-                        <Switch
-                          checked={permission.enabled}
-                          onCheckedChange={() => handleTogglePermission(sectionIndex, permission.id)}
-                          disabled={!currentRole?.isEditable}
-                          className="data-[state=checked]:bg-[#2563EB]"
-                        />
-                      </div>
-                    ))}
+              {selectedRole === 'CSG Officer' ? (
+              <div className="space-y-6">
+                <div className="mb-6 p-4 bg-blue-50 rounded-xl border border-blue-200">
+                  <div className="flex flex-col gap-4 md:flex-row md:items-center">
+                    <Users className="w-5 h-5 text-[#2563EB] flex-shrink-0" />
+                    <div className="flex-1">
+                      <label className="text-sm text-gray-700 mb-2 block">Filter by CSG Position</label>
+                      <Select value={selectedCSGFilter} onValueChange={setSelectedCSGFilter} className="w-full h-10 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:border-gray-300 focus:ring-2 focus:ring-gray-200 outline-none transition">
+                        {csgPositions.map(position => (
+                          <SelectItem key={position.id} value={position.id}>
+                            {position.name}
+                          </SelectItem>
+                        ))}
+                      </Select>
+                    </div>
                   </div>
                 </div>
-              ))}
+
+                {selectedCsgPosition ? (
+                  <Card className="p-4 rounded-xl border-0 shadow-sm bg-gray-50">
+                    <h3 className="text-lg font-semibold mb-4 text-gray-900">{selectedCsgPosition.name}</h3>
+                    <div className="space-y-4">
+                      {selectedCsgPosition.sections.map((section, sectionIndex) => (
+                        <div key={section.category}>
+                          <h4 className="text-sm text-gray-700 mb-2 font-medium">{section.category}</h4>
+                          <div className="space-y-2">
+                            {section.permissions.map((permission) => (
+                              <div
+                                key={permission.id}
+                                className="flex items-center justify-between p-2 rounded-lg bg-white"
+                              >
+                                <span className={`text-sm ${permission.enabled ? 'text-gray-900' : 'text-gray-500'}`}>{permission.label}</span>
+                                <Switch
+                                  checked={permission.enabled}
+                                  onCheckedChange={() => handleTogglePermission(selectedCsgPosition.id, sectionIndex, permission.id)}
+                                  disabled={!currentRole?.isEditable}
+                                  className="data-[state=checked]:bg-[#2563EB]"
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+                ) : (
+                  <div className="rounded-xl border border-gray-200 bg-gray-50 p-6 text-center text-sm text-gray-500">
+                    Select a CSG position to view permissions.
+                  </div>
+                )}
+              </div>
+            ) : (
+                currentData.sections.map((section, sectionIndex) => (
+                  <div key={section.category}>
+                    <h3 className="text-sm text-gray-900 mb-3 flex items-center gap-2">
+                      <div className="w-1 h-4 bg-[#2563EB] rounded"></div>
+                      {section.category}
+                    </h3>
+                    <div className="space-y-3 ml-3">
+                      {section.permissions.map((permission) => (
+                        <div
+                          key={permission.id}
+                          className={`flex items-center justify-between p-3 rounded-xl transition-colors ${
+                            currentRole?.isEditable ? 'hover:bg-gray-50' : 'bg-gray-50 opacity-75'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${permission.enabled ? 'bg-green-100' : 'bg-gray-100'}`}>
+                              {permission.enabled ? <Check className="w-4 h-4 text-green-600" /> : <span className="text-gray-400 text-sm">✕</span>}
+                            </div>
+                            <span className={`text-sm ${permission.enabled ? 'text-gray-900' : 'text-gray-500'}`}>{permission.label}</span>
+                            {!currentRole?.isEditable && <Lock className="w-3 h-3 text-gray-400" />}
+                          </div>
+                          <Switch
+                            checked={permission.enabled}
+                            onCheckedChange={() => handleTogglePermission(null, sectionIndex, permission.id)}
+                            disabled={!currentRole?.isEditable}
+                            className="data-[state=checked]:bg-[#2563EB]"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
 
             <div className={`mt-6 p-4 rounded-xl border ${currentRole?.isEditable ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200'}`}>
@@ -835,87 +606,89 @@ export function RolePermissionsPage() {
         </div>
       </div>
 
-      <Modal
-        open={isSetOfficerModalOpen}
-        onClose={() => setIsSetOfficerModalOpen(false)}
-        title="Set CSG Officer"
-        description="Assign a student as a CSG officer position."
-      >
-        <div className="space-y-4">
-          <div className="flex items-center gap-3">
-            <Users className="w-5 h-5 text-[#2563EB] flex-shrink-0" />
-            <div className="flex-1">
-              <label className="text-sm text-gray-700 mb-2 block">Select CSG Position</label>
-              <Select
-          className="w-full h-10 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:border-gray-300 focus:ring-2 focus:ring-gray-200 outline-none transition"
-          value={selectedPosition} onValueChange={setSelectedPosition}>
-                <option value="" disabled>Select position</option>
-                {csgPositions.map(position => (
-                  <SelectItem key={position.id} value={position.id}>
-                    {position.name}
-                  </SelectItem>
-                ))}
-              </Select>
-            </div>
-          </div>
+     <Modal
+  open={isSetOfficerModalOpen}
+  onClose={() => setIsSetOfficerModalOpen(false)}
+  title="Set CSG Officer"
+  description="Assign a student as a CSG officer position."
+>
+  <div className="space-y-4">
 
-          <div className="flex items-center gap-3">
-            <UserPlus className="w-5 h-5 text-[#2563EB] flex-shrink-0" />
-            <div className="flex-1">
-              <label className="text-sm text-gray-700 mb-2 block">Search User</label>
-              <input 
-          className="w-full h-10 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:border-gray-300 focus:ring-2 focus:ring-gray-200 outline-none transition"
-          value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Name, Email, or Student ID" />
-            </div>
-          </div>
+    <div className="grid grid-cols-2 gap-3 flex items-center">
+      {/* <UserPlus className="w-5 h-5 text-[#2563EB] flex-shrink-0" /> */}
+      <div className="flex-1">
+         <label className="text-sm text-gray-700 mt-2 block">Select CSG President</label>
+        <input 
+          className="w-full h-10 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:border-blue-300 focus:ring-2 focus:ring-gray-200 outline-none transition"
+          value={searchQuery} 
+          onChange={(e) => setSearchQuery(e.target.value)} 
+          placeholder="Name or Student ID" 
+        />
+      </div>
+    </div>
 
-          <div className="space-y-2 max-h-[300px] overflow-y-auto">
-            {filteredUsers.length > 0 ? (
-              filteredUsers.map(user => (
-                <button
-                  key={user.id}
-                  type="button"
-                  className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all cursor-pointer ${
-                    selectedUser === user.id ? 'bg-blue-50 border-2 border-[#2563EB]' : 'bg-gray-50 border-2 border-transparent hover:border-blue-200'
-                  }`}
-                  onClick={() => setSelectedUser(user.id)}
-                >
-                  <Avatar className="w-10 h-10">
-                    <AvatarFallback className={`text-xs ${selectedUser === user.id ? 'bg-[#2563EB] text-white' : 'bg-gray-300 text-gray-700'}`}>
-                      {user.avatar}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 text-left">
-                    <p className="text-sm text-gray-900 font-medium">{user.name}</p>
-                    <p className="text-xs text-gray-500">{user.email}</p>
-                    <p className="text-xs text-gray-400">ID: {user.studentId}</p>
-                  </div>
-                  {selectedUser === user.id && <CheckCircle className="w-5 h-5 text-[#2563EB] flex-shrink-0" />}
-                </button>
-              ))
-            ) : (
-              <div className="text-center py-8">
-                <Search className="w-12 h-12 text-gray-300 mx-auto mb-2" />
-                <p className="text-sm text-gray-500">No users found</p>
-                <p className="text-xs text-gray-400 mt-1">Try a different search term</p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="mt-6 flex justify-end gap-3">
-          <Button
-            onClick={() => setIsSetOfficerModalOpen(false)}
-            variant="outline"
-            className="border-gray-300 text-gray-700 hover:bg-gray-50"
+    <div className="space-y-2 max-h-[300px] overflow-y-auto">
+      {filteredUsers.length > 0 ? (
+        filteredUsers.map(user => (
+          <button
+            key={user.id}
+            type="button"
+            className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all cursor-pointer ${
+              selectedUser === user.id ? 'bg-blue-50 border-2 border-[#2563EB]' : 'bg-gray-50 border-2 border-transparent hover:border-blue-200'
+            } ${!selectedPosition ? 'opacity-50 cursor-not-allowed' : ''}`}
+            onClick={() => {
+              if (selectedPosition) {
+                setSelectedUser(user.id);
+              }
+            }}
+            disabled={!selectedPosition}
           >
-            Cancel
-          </Button>
-          <Button onClick={handleSetOfficer} className="bg-[#2563EB] hover:bg-blue-700 text-white">
-            Set Officer
-          </Button>
+            <Avatar className="w-10 h-10">
+              <AvatarFallback className={`text-xs ${selectedUser === user.id ? 'bg-[#2563EB] text-white' : 'bg-gray-300 text-gray-700'}`}>
+                {user.avatar}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 text-left">
+              <p className="text-sm text-gray-900 font-medium">{user.name}</p>
+              <p className="text-xs text-gray-500">{user.email}</p>
+              <p className="text-xs text-gray-400">ID: {user.studentId}</p>
+            </div>
+            {selectedUser === user.id && <CheckCircle className="w-5 h-5 text-[#2563EB] flex-shrink-0" />}
+          </button>
+        ))
+      ) : (
+        <div className="text-center py-8">
+          <Search className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+          <p className="text-sm text-gray-500">No users found</p>
+          <p className="text-xs text-gray-400 mt-1">Try a different search term</p>
         </div>
-      </Modal>
+      )}
+    </div>
+  </div>
+
+  <div className="mt-6 flex justify-end gap-3">
+    <Button
+      onClick={() => {
+        setIsSetOfficerModalOpen(false);
+        setSelectedPositionCard(null);
+        setSelectedPosition(null);
+        setSelectedUser(null);
+        setSearchQuery('');
+      }}
+      variant="outline"
+      className="border-gray-300 text-gray-700 hover:bg-gray-50"
+    >
+      Cancel
+    </Button>
+    <Button 
+      onClick={handleSetOfficer} 
+      className="bg-[#2563EB] hover:bg-blue-700 text-white"
+      disabled={!selectedUser}
+    >
+      Set Officer
+    </Button>
+  </div>
+</Modal>
     </div>
   );
 }
