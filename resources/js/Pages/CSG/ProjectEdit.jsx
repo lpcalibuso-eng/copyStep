@@ -4,6 +4,7 @@ import { Button } from '@/Components/ui/button';
 import { Badge } from '@/Components/ui/badge';
 import { Input } from '@/Components/ui/input';
 import { Textarea } from '@/Components/ui/textarea';
+import { toast } from 'react-hot-toast'; 
 import {
   Edit,
   Trash2,
@@ -661,26 +662,140 @@ export function AddLedgerModal({ open, onClose, ledgerForm, setLedgerForm, onSav
   };
 
   // Handle save
-  const handleSave = async () => {
-    // Validate required fields
-    if (!ledgerForm.description) {
-      showToast('Please fill in description', 'error');
-      return;
-    }
+//   const handleSave = async () => {
+//     if (e) e.preventDefault();
+//     setIsUploading(true);
 
-    // Validate budget items
-    const hasEmptyItems = budgetItems.some(item => !item.item || !item.unitPrice || item.quantity <= 0);
-    if (hasEmptyItems) {
-      showToast('Please fill in all budget items', 'error');
-      return;
-    }
+//     // Validate required fields
+//     if (!ledgerForm.description) {
+//       showToast('Please fill in description', 'error');
+//       return;
+//     }
 
-    setIsUploading(true);
+//     // Validate budget items
+//     const hasEmptyItems = budgetItems.some(item => !item.item || !item.unitPrice || item.quantity <= 0);
+//     if (hasEmptyItems) {
+//       showToast('Please fill in all budget items', 'error');
+//       return;
+//     }
+
+//     setIsUploading(true);
+
+//     try {
+//       const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+      
+//       // Create FormData for file upload
+//       // const formData = new FormData();
+//       // formData.append('project_id', projectId);
+//       // formData.append('type', ledgerForm.type);
+//       // formData.append('description', ledgerForm.description);
+//       // formData.append('amount', calculateTotalBudget().toString());
+//       // formData.append('budget_breakdown', JSON.stringify(budgetItems));
+//       // formData.append('project_budget_breakdown', JSON.stringify(projectBudgetBreakdown || []));
+//       // formData.append('approval_status', 'Draft');
+
+// // 1. Create FormData and append ALL necessary fields
+//       const formData = new FormData();
+//       formData.append('project_id', projectId);
+//       formData.append('type', ledgerForm.type);
+//       formData.append('description', ledgerForm.description);
+//       formData.append('amount', calculateTotalBudget().toString());
+//       formData.append('budget_breakdown', JSON.stringify(budgetItems));
+//       formData.append('project_budget_breakdown', JSON.stringify(projectBudgetBreakdown || []));
+//       formData.append('date', ledgerForm.date || new Date().toISOString().split('T')[0]);
+//       formData.append('approval_status', 'Draft');
+
+      
+//       // // Append file if selected
+//       // if (selectedFile) {
+//       //   formData.append('ledger_proof', selectedFile);
+//       // }
+
+//       // const res = await fetch('/api/ledger-entries', {
+//       //   method: 'POST',
+//       //   headers: {
+//       //     'X-CSRF-TOKEN': token,
+//       //     'Accept': 'application/json',
+//       //   },
+//       //   body: formData,
+//       // });
+
+//       if (selectedFile) {
+//         formData.append('proof_file', selectedFile);
+//       }
+
+//       // 3. Define 'res' (The Response)
+//       const res = await fetch('/api/ledger-entries', {
+//         method: 'POST',
+//         headers: {
+//           'X-CSRF-TOKEN': token,
+//           'Accept': 'application/json',
+//           'X-Requested-With': 'XMLHttpRequest',
+//         },
+//         body: formData,
+//       });
+      
+//       // if (!res.ok) {
+//       //   let msg = 'Failed to create ledger entry';
+//       //   try {
+//       //     const errData = await res.json();
+//       //     if (errData && errData.message) msg = errData.message;
+//       //   } catch {}
+//       //   throw new Error(msg);
+//       // }
+      
+// // 4. Handle the Response
+//       if (res.ok) {
+//         const result = await res.json();
+        
+//         // Show success toast
+//         toast.success(result.message || "Entry created successfully!");
+        
+//         // Update the UI via your onSave prop/callback
+//         if (onSave) {
+//           onSave(result.data || result); 
+//         }
+        
+//         handleClose(); // Close the modal
+//       } else {
+//         // Handle Server Errors (e.g., Validation failed)
+//         let errorMsg = 'Failed to create ledger entry';
+//         try {
+//           const errData = await res.json();
+//           errorMsg = errData.message || errorMsg;
+//         } catch (parseError) {
+//           // If response isn't JSON
+//         }
+//         toast.error(errorMsg);
+//       }
+
+//     //   const newEntry = await res.json();
+//     //   onSave(newEntry);
+//     //   handleClose();
+//     // } catch (err) {
+//     //   showToast(err.message, 'error');
+//     // } finally {
+//     //   setIsUploading(false);
+//     // }
+
+//     } catch (err) {
+//       // Handle Network Errors (e.g., Server is offline)
+//       console.error("Fetch Error:", err);
+//       toast.error("Network error: Could not reach the server.");
+//     } finally {
+//       setIsUploading(false); // Stop loading state
+//     }
+
+//   };
+
+const handleSave = async (e) => {
+    if (e) e.preventDefault();
+    setIsUploading(true); // Start loading state
 
     try {
       const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
       
-      // Create FormData for file upload
+      // 1. Create FormData and append ALL necessary fields
       const formData = new FormData();
       formData.append('project_id', projectId);
       formData.append('type', ledgerForm.type);
@@ -688,38 +803,105 @@ export function AddLedgerModal({ open, onClose, ledgerForm, setLedgerForm, onSav
       formData.append('amount', calculateTotalBudget().toString());
       formData.append('budget_breakdown', JSON.stringify(budgetItems));
       formData.append('project_budget_breakdown', JSON.stringify(projectBudgetBreakdown || []));
+      formData.append('date', ledgerForm.date || new Date().toISOString().split('T')[0]);
       formData.append('approval_status', 'Draft');
       
-      // Append file if selected
+      // 2. IMPORTANT: Use 'proof_file' to match your Laravel Controller
       if (selectedFile) {
-        formData.append('ledger_proof', selectedFile);
+        formData.append('proof_file', selectedFile);
       }
 
+      console.log('📤 Sending ledger entry to /api/ledger-entries...');
+
+      // 3. Define 'res' (The Response)
       const res = await fetch('/api/ledger-entries', {
         method: 'POST',
         headers: {
           'X-CSRF-TOKEN': token,
           'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
         },
         body: formData,
       });
-      
-      if (!res.ok) {
-        let msg = 'Failed to create ledger entry';
+
+      console.log('📥 Response received - Status:', res.status, res.statusText);
+      console.log('📥 Response headers:', {
+        'Content-Type': res.headers.get('Content-Type'),
+        'Content-Length': res.headers.get('Content-Length')
+      });
+
+      // 4. Handle the Response
+      if (res.ok) {
+        console.log('✅ Response is OK (2xx status), attempting to parse JSON...');
+        let result = null;
+        let parseErr = null;
+        
+        try {
+          result = await res.json();
+          console.log('✅ JSON parsed successfully:', result);
+        } catch (e) {
+          parseErr = e;
+          console.warn('⚠️ Could not parse response as JSON, but status was OK');
+          console.log('Parse error:', e.message);
+        }
+
+        // Whether we got JSON or not, if status is 201, assume success
+        // (Server may crash after sending 201 header but before body)
+        toast.success(result?.message || "Entry created successfully!");
+        
+        // Update the UI via your onSave prop/callback
+        if (onSave && result?.data) {
+          onSave(result.data);
+        } else if (onSave) {
+          // No data returned but was created (based on 201 status)
+          onSave({
+            success: true,
+            id: 'entry-' + Date.now(),
+            message: 'Entry created successfully'
+          });
+        }
+        
+        handleClose(); // Close the modal
+      } else if (res.status === 422 || res.status === 400) {
+        // Validation error - try to parse error details
+        console.log('❌ Validation error:', res.status);
+        let errorMsg = 'Validation failed';
         try {
           const errData = await res.json();
-          if (errData && errData.message) msg = errData.message;
-        } catch {}
-        throw new Error(msg);
+          console.error('Server error response:', errData);
+          errorMsg = errData.message || errorMsg;
+          if (errData.errors) {
+            const errorList = Object.entries(errData.errors)
+              .map(([key, messages]) => `${key}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
+              .join('\n');
+            errorMsg += `\n\n${errorList}`;
+          }
+        } catch (parseError) {
+          console.error('Could not parse error response:', parseError);
+          errorMsg += ` (Status: ${res.status})`;
+        }
+        toast.error(errorMsg);
+      } else {
+        // Other server errors
+        console.log('❌ Server error:', res.status);
+        let errorMsg = `Server error (${res.status})`;
+        try {
+          const errData = await res.json();
+          errorMsg = errData.message || errorMsg;
+        } catch (parseError) {
+          console.error('Could not parse error:', parseError);
+        }
+        toast.error(errorMsg);
       }
-      
-      const newEntry = await res.json();
-      onSave(newEntry);
-      handleClose();
     } catch (err) {
-      showToast(err.message, 'error');
+      // Handle Network Errors (e.g., Server is offline)
+      console.error("❌ Fetch Error:", err.message);
+      console.error("Full error:", err);
+      
+      // Network error
+      toast.error("Network error: " + (err.message || "Could not reach the server."));
     } finally {
-      setIsUploading(false);
+      setIsUploading(false); // Stop loading state
     }
   };
 

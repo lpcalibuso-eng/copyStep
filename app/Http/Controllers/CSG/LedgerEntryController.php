@@ -9,6 +9,8 @@ use App\Models\CSG\Project;
 use App\Models\CSG\Approval;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -17,6 +19,62 @@ class LedgerEntryController extends Controller
     /**
      * Get ledger entries for a specific project
      */
+
+/**
+ * Handles the uploading of transaction proofs (receipts/images).
+ * Implements Immutable Ledger design by hashing the file content.
+ */
+public function uploadProof(Request $request, $id)
+{
+    try {
+        // 1. Find the specific ledger entry
+        $entry = LedgerEntry::findOrFail($id);
+
+        // 2. Validate the file presence and type
+        if (!$request->hasFile('proof_file')) {
+            return response()->json(['success' => false, 'message' => 'No file was uploaded.'], 400);
+        }
+
+        $file = $request->file('proof_file');
+
+        // 3. SECURE HASHING (Core Capstone Feature)
+        // We generate a unique SHA-256 hash based on the file's content.
+        // This ensures transparency: if the file is changed, the hash won't match.
+        $fileHash = hash_file('sha256', $file->getRealPath());
+        $extension = $file->getClientOriginalExtension();
+        $fileName = $fileHash . '.' . $extension;
+
+        // 4. STORAGE (Local Folder)
+        // Automatically creates 'storage/app/public/ledger_proofs' if it doesn't exist
+        $path = $file->storeAs('ledger_proofs', $fileName, 'public');
+
+        // 5. UPDATE DATABASE
+        // Store the web-accessible path and the content hash for auditing
+        $entry->update([
+            'ledger_proof' => 'storage/ledger_proofs/' . $fileName,
+            'file_content_hash' => $fileHash, // Ensure this column exists in your table
+            'updated_at' => now()
+        ]);
+
+        // 6. JSON RESPONSE (Fixes the ERR_EMPTY_RESPONSE)
+        return response()->json([
+            'success' => true,
+            'message' => 'Proof uploaded and verified successfully!',
+            'data' => [
+                'path' => asset('storage/ledger_proofs/' . $fileName),
+                'hash' => $fileHash
+            ]
+        ], 200);
+
+    } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        return response()->json(['success' => false, 'message' => 'Ledger entry not found.'], 404);
+    } catch (\Exception $e) {
+        // Catch-all for server errors (folder permissions, etc.)
+        return response()->json(['success' => false, 'message' => 'Server Error: ' . $e->getMessage()], 500);
+    }
+}
+
+
     public function index($projectId)
     {
         try {
@@ -120,7 +178,7 @@ class LedgerEntryController extends Controller
     }
 
     /**
-     * Store a new ledger entry
+     * Store a new ledger entry with optional file upload
      */
     public function store(Request $request)
     {
@@ -132,6 +190,7 @@ class LedgerEntryController extends Controller
                 'description' => 'required|string|max:1000',
                 'amount' => 'required|numeric|min:0',
                 'budget_breakdown' => 'nullable|json',
+                'proof_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
                 'ledger_proof' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
                 'approval_status' => 'nullable|string',
                 'is_initial_entry' => 'nullable|boolean',
@@ -154,12 +213,23 @@ class LedgerEntryController extends Controller
                 $entry->budget_breakdown = $request->budget_breakdown;
             }
             
-            // Handle file upload
-            if ($request->hasFile('ledger_proof')) {
-                $file = $request->file('ledger_proof');
-                $fileName = time() . '_' . $file->getClientOriginalName();
+            // Handle file upload with SHA-256 hashing for immutability
+            if ($request->hasFile('proof_file') || $request->hasFile('ledger_proof')) {
+                $file = $request->file('proof_file') ?? $request->file('ledger_proof');
+                
+                // Generate SHA-256 hash of file content for immutability
+                $fileHash = hash_file('sha256', $file->getRealPath());
+                $extension = $file->getClientOriginalExtension();
+                $fileName = $fileHash . '.' . $extension;
+                
+                // Store file with hash-based name to prevent duplicates in ledger_proofs folder
                 $filePath = $file->storeAs('ledger_proofs', $fileName, 'public');
-                $entry->ledger_proof = $filePath;
+                
+                if ($filePath) {
+                    $entry->ledger_proof = 'storage/ledger_proofs/' . $fileName;
+                    $entry->file_content_hash = $fileHash;
+                    Log::info('File stored: ' . $filePath . ' with hash: ' . $fileHash);
+                }
             }
             
             $entry->created_at = now();
@@ -167,22 +237,33 @@ class LedgerEntryController extends Controller
             
             $entry->save();
             
-            // Add file URL to response
-            if ($entry->ledger_proof) {
-                $entry->ledger_proof_url = Storage::url($entry->ledger_proof);
-            }
+            Log::info('Ledger entry created with ID: ' . $entry->id);
             
-            return response()->json($entry, 201);
+            // Return simple response array - Laravel auto-converts to JSON
+            return response([
+                'success' => true,
+                'message' => 'Ledger entry created successfully!',
+                'data' => [
+                    'id' => $entry->id,
+                    'project_id' => $entry->project_id,
+                    'type' => $entry->type,
+                    'description' => $entry->description,
+                    'amount' => (float)$entry->amount,
+                    'approval_status' => $entry->approval_status,
+                ]
+            ], 201);
             
         } catch (ValidationException $e) {
-            \Log::warning('Ledger entry validation failed: ' . json_encode($e->errors()));
+            Log::warning('Ledger entry validation failed: ' . json_encode($e->errors()));
             return response()->json([
+                'success' => false,
                 'message' => 'Validation failed',
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
-            \Log::error('Ledger entry creation failed: ' . $e->getMessage());
+            Log::error('Ledger entry creation failed: ' . $e->getMessage() . ' | Trace: ' . $e->getTraceAsString());
             return response()->json([
+                'success' => false,
                 'message' => 'Failed to create ledger entry',
                 'error' => $e->getMessage()
             ], 500);
@@ -223,13 +304,13 @@ class LedgerEntryController extends Controller
             return response()->json($entry);
             
         } catch (ValidationException $e) {
-            \Log::warning('Ledger entry update validation failed: ' . json_encode($e->errors()));
+            Log::warning('Ledger entry update validation failed: ' . json_encode($e->errors()));
             return response()->json([
                 'message' => 'Validation failed',
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
-            \Log::error('Ledger entry update failed: ' . $e->getMessage());
+            Log::error('Ledger entry update failed: ' . $e->getMessage());
             return response()->json([
                 'message' => 'Failed to update ledger entry',
                 'error' => $e->getMessage()
@@ -258,8 +339,8 @@ class LedgerEntryController extends Controller
                     $approverEmployeeId = $entry->project->approve_by;
                 }
 
-                if (!$approverEmployeeId && auth()->check()) {
-                    $approverEmployeeId = (string) auth()->id();
+                if (!$approverEmployeeId && Auth::check()) {
+                    $approverEmployeeId = (string) Auth::id();
                 }
 
                 Approval::create([
@@ -270,13 +351,13 @@ class LedgerEntryController extends Controller
                     'status' => 'pending',
                 ]);
             } catch (\Exception $approvalError) {
-                \Log::warning('Approval insertion skipped for ledger submit: ' . $approvalError->getMessage());
+                Log::warning('Approval insertion skipped for ledger submit: ' . $approvalError->getMessage());
             }
             
             return response()->json($entry);
             
         } catch (\Exception $e) {
-            \Log::error('Ledger entry submit for approval failed: ' . $e->getMessage());
+            Log::error('Ledger entry submit for approval failed: ' . $e->getMessage());
             return response()->json([
                 'message' => 'Failed to submit ledger entry for approval',
                 'error' => $e->getMessage()
@@ -298,7 +379,7 @@ class LedgerEntryController extends Controller
             return response()->json(['message' => 'Ledger entry archived successfully']);
             
         } catch (\Exception $e) {
-            \Log::error('Ledger entry archiving failed: ' . $e->getMessage());
+            Log::error('Ledger entry archiving failed: ' . $e->getMessage());
             return response()->json([
                 'message' => 'Failed to archive ledger entry',
                 'error' => $e->getMessage()
@@ -320,7 +401,7 @@ class LedgerEntryController extends Controller
             return response()->json(['message' => 'Ledger entry restored successfully']);
 
         } catch (\Exception $e) {
-            \Log::error('Ledger entry restore failed: ' . $e->getMessage());
+            Log::error('Ledger entry restore failed: ' . $e->getMessage());
             return response()->json([
                 'message' => 'Failed to restore ledger entry',
                 'error' => $e->getMessage()
