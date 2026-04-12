@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { User, Mail, Lock, Eye, EyeOff, Building } from "lucide-react";
+import { User, Mail, Lock, Eye, EyeOff, Shield } from "lucide-react";
 import { useSupabase } from "../../context/SupabaseContext";
 
 export default function RegisterPage({ onRegister, onNavigateToLogin }) {
@@ -11,7 +11,7 @@ export default function RegisterPage({ onRegister, onNavigateToLogin }) {
     email: "",
     password: "",
     confirmPassword: "",
-    institute: "",
+    role: "",
     agree: false,
   });
 
@@ -19,27 +19,12 @@ export default function RegisterPage({ onRegister, onNavigateToLogin }) {
   const [showConfirm, setShowConfirm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [institutes, setInstitutes] = useState([]);
-  const [institutesLoading, setInstitutesLoading] = useState(true);
 
-  // Fetch institutes on component mount
-  useEffect(() => {
-    const fetchInstitutes = async () => {
-      try {
-        const response = await fetch("/institutes");
-        if (!response.ok) throw new Error("Failed to fetch institutes");
-        const data = await response.json();
-        setInstitutes(data);
-      } catch (err) {
-        console.error("Error fetching institutes:", err);
-        setError("Failed to load institutes. Please refresh the page.");
-      } finally {
-        setInstitutesLoading(false);
-      }
-    };
-
-    fetchInstitutes();
-  }, []);
+  // Role options
+  const roleOptions = [
+    { id: "059f4170-235d-11f1-9647-10683825ce81", name: "Student", slug: "student" },
+    { id: "059f4213-235d-11f1-9647-10683825ce81", name: "Professor", slug: "teacher" },
+  ];
 
   const handleChange = (field, value) => {
     setForm({ ...form, [field]: value });
@@ -57,7 +42,8 @@ export default function RegisterPage({ onRegister, onNavigateToLogin }) {
         !form.lastName ||
         !form.email ||
         !form.password ||
-        !form.confirmPassword
+        !form.confirmPassword ||
+        !form.role
       ) {
         throw new Error("Please fill in all required fields.");
       }
@@ -83,7 +69,7 @@ export default function RegisterPage({ onRegister, onNavigateToLogin }) {
       const userData = {
         firstName: form.firstName,
         lastName: form.lastName,
-        institute: form.institute,
+        role: form.role,
       };
 
       const result = await signUp(form.email, form.password, userData);
@@ -326,26 +312,25 @@ export default function RegisterPage({ onRegister, onNavigateToLogin }) {
 
             </div>
 
+            {/* Role Selection */}
             <div>
               <label className="block text-sm text-gray-600 mb-1">
-                Institute
+                Role <span className="text-red-500">*</span>
               </label>
               <div className="relative">
-                <Building className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <select
-                  value={form.institute}
-                  onChange={(e) => handleChange("institute", e.target.value)}
-                  disabled={institutesLoading}
-                  className="w-full h-10 pl-9 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:border-gray-300 focus:ring-2 focus:ring-gray-200 outline-none transition disabled:opacity-50"
+                  value={form.role}
+                  onChange={(e) => handleChange("role", e.target.value)}
+                  className="w-full h-10 pl-9 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:border-gray-300 focus:ring-2 focus:ring-gray-200 outline-none transition"
                 >
-                  <option value="">Choose your institute</option>
-                  {institutes.map((inst) => (
-                    <option key={inst.id} value={inst.id}>
-                      {inst.name}
+                  <option value="">Select your role</option>
+                  {roleOptions.map((roleOption) => (
+                    <option key={roleOption.id} value={roleOption.id}>
+                      {roleOption.name}
                     </option>
                   ))}
                 </select>
-
               </div>
             </div>
 
