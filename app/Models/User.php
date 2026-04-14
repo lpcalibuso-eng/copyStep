@@ -21,7 +21,7 @@ class User extends Authenticatable
 
     /**
      * Fillable columns matching your SQL schema exactly.
-     * REMOVED: institute_id, provider, provider_id, avatar_url (Not in your SQL)
+     * Added: avatar_url, profile_completed, email_verified_at
      */
     protected $fillable = [
         'id',
@@ -33,6 +33,9 @@ class User extends Authenticatable
         'status',
         'last_login_at',
         'archive',
+        'avatar_url',
+        'profile_completed',
+        'email_verified_at',
     ];
 
     protected $hidden = [

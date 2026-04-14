@@ -11,6 +11,9 @@ use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\VerifyEmailController;
+use App\Http\Controllers\Auth\OTPController;
+use App\Http\Controllers\Auth\GoogleAuthController;
+use App\Http\Controllers\Auth\OnboardingController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
@@ -35,6 +38,19 @@ Route::middleware('guest')->group(function () {
     });
     // ===========================================================
 
+    // ========== OTP-BASED REGISTRATION ENDPOINTS ==========
+    Route::post('api/otp/send', [OTPController::class, 'sendOTP']);
+    Route::post('api/otp/verify', [OTPController::class, 'verifyOTP']);
+    Route::post('api/otp/resend', [OTPController::class, 'resendOTP']);
+    // ======================================================
+
+    // ========== GOOGLE OAUTH ENDPOINTS ==========
+    // This creates/updates user in step2 DB after Google OAuth authentication
+    // NOTE: Using withoutMiddleware to skip CSRF since OAuth comes from external provider
+    Route::post('api/oauth/google-login', [GoogleAuthController::class, 'googleLogin'])
+        ->withoutMiddleware('csrf');
+    // ============================================
+
     Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])
         ->name('password.request');
 
@@ -56,6 +72,8 @@ Route::get('institutes/{id}', [InstituteController::class, 'show']);
 Route::get('callback', function () {
     return \Inertia\Inertia::render('Auth/OAuthCallback');
 })->name('auth.callback');
+
+// ==========================================
 
 Route::middleware('auth')->group(function () {
     Route::get('verify-email', EmailVerificationPromptController::class)
@@ -83,4 +101,9 @@ Route::middleware('auth')->group(function () {
     // This endpoint is for JSON API calls from React components
     Route::post('api/logout', [ApiLoginController::class, 'logout']);
     // ===========================================================
+
+    // ========== PROFILE COMPLETION ENDPOINTS ==========
+    Route::post('api/profile/complete', [OTPController::class, 'completeProfile']);
+    Route::get('api/profile/status', [OTPController::class, 'checkProfileStatus']);
+    // ===================================================
 });

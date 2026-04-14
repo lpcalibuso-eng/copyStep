@@ -29,7 +29,6 @@ export function StudentNavbar({
   unreadNotificationsCount = 0,
 }) {
   const { logout: supabaseLogout } = useLogout();
-  const { user } = useSupabase();
   const { props } = usePage();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -37,15 +36,32 @@ export function StudentNavbar({
   const profileMenuRef = useRef(null);
   const notificationsMenuRef = useRef(null);
 
-  // Get display name from user object
-  const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Student';
+  // Get user from Laravel auth props (database user with role)
+  // Use temporary/fallback data if no user is logged in (for development/testing)
+  const fallbackUser = {
+    name: 'Guest User',
+    email: 'guest@example.com',
+    role: { name: 'Student' },
+    avatar_url: null,
+  };
+  
+  const laravelUser = props.auth?.user || fallbackUser;
+  
+  // Fallback display name from Laravel user (name, email)
+  const displayName = laravelUser?.name || 'Student';
+  const userEmail = laravelUser?.email || '';
+  const roleData = laravelUser?.role;
+  const roleName = roleData?.name || 'Student';
+  
+  // Get avatar from Laravel user avatar_url field
+  const profilePicture = laravelUser?.avatar_url;
+  
   const userInitials = displayName
     .split(' ')
     .map(n => n[0])
     .join('')
     .toUpperCase()
     .slice(0, 2);
-  const profilePicture = user?.user_metadata?.avatar_url;
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -173,19 +189,40 @@ export function StudentNavbar({
                     </div>
                   )}
                   <div className="text-left">
-                    <p className="text-sm text-gray-900">{displayName}</p>
-                    <p className="text-xs text-blue-600">500 pts</p>
+                    <p className="text-sm font-medium text-gray-900">{displayName}</p>
+                    <p className="text-xs text-gray-500">{roleName}</p>
                   </div>
                   <ChevronDown className="w-4 h-4 text-gray-400" />
                 </button>
                 {isProfileMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-200 z-50">
+                  <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-lg border border-gray-200 z-50">
+                    {/* Profile Header */}
+                    <div className="p-4 border-b">
+                      <div className="flex items-center gap-3">
+                        {profilePicture ? (
+                          <img 
+                            src={profilePicture} 
+                            alt={displayName}
+                            className="w-12 h-12 rounded-full object-cover border border-gray-200"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                            {userInitials}
+                          </div>
+                        )}
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-900">{displayName}</p>
+                          <p className="text-xs text-gray-500">{userEmail}</p>
+                          <p className="text-xs font-medium text-blue-600 mt-1">{roleName}</p>
+                        </div>
+                      </div>
+                    </div>
                     <button
                       onClick={() => { onNavigate('profile'); setIsProfileMenuOpen(false); }}
                       className="w-full flex items-center gap-2 px-4 py-3 hover:bg-gray-50 text-left"
                     >
                       <User className="w-4 h-4" />
-                      Profile
+                      View Profile
                     </button>
                     <button
                       onClick={() => { onNavigate('notifications'); setIsProfileMenuOpen(false); }}
@@ -382,7 +419,7 @@ export function StudentNavbar({
             )}
             <div className="flex-1">
               <p className="text-sm text-gray-900">{displayName}</p>
-              <p className="text-xs text-gray-500">{user?.email}</p>
+              <p className="text-xs text-gray-500">{userEmail}</p>
             </div>
           </div>
           {onSwitchRole && userData?.canSwitch && (

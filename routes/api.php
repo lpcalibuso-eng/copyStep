@@ -5,6 +5,8 @@ use Illuminate\Support\Facades\Route;
 // Import your controllers here
 use App\Http\Controllers\FinancialTransactionController;
 use App\Http\Controllers\CSG\LedgerEntryController;
+use App\Http\Controllers\Auth\OTPController;
+use App\Http\Controllers\Auth\OnboardingController;
 
 /*
 |--------------------------------------------------------------------------
@@ -21,6 +23,26 @@ use App\Http\Controllers\CSG\LedgerEntryController;
 Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
+
+/**
+ * AUTHENTICATION - OTP Routes (No auth required)
+ */
+Route::post('/send-otp', [OTPController::class, 'sendOTP']);
+Route::post('/verify-otp', [OTPController::class, 'verifyOTP']);
+Route::post('/resend-otp', [OTPController::class, 'resendOTP']);
+
+/**
+ * ONBOARDING ROUTES
+ * Handled via API directly to prevent Inertia HTML redirects
+ */
+Route::prefix('onboarding')->group(function () {
+    Route::post('/complete', [OnboardingController::class, 'complete']);
+    Route::post('/set-password', [OnboardingController::class, 'setPassword']);
+    Route::get('/courses', [OnboardingController::class, 'getCourses']);
+    Route::get('/institutes', [OnboardingController::class, 'getInstitutes']);
+    // routes/api.php
+    Route::get('/onboarding/data', [OnboardingController::class, 'getOnboardingData']);
+});
 
 /**
  * CSG FINANCIAL SYSTEM ROUTES

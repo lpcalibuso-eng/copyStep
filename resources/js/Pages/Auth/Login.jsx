@@ -3,11 +3,11 @@ import { Link, router } from '@inertiajs/react';
 import { User, Lock, Eye, EyeOff } from "lucide-react";
 // Comment muna
 // SUPABASE AUTH
-// import { useSupabase } from "../../context/SupabaseContext";
+import { useSupabase } from "../../context/SupabaseContext";
 
 export default function LoginPage({ onLogin, onNavigateToRegister }) {
     // Comment muna
-    // const { signIn, signInWithGoogle, validateGoogleEmailDomain, user } = useSupabase();
+    const { signIn, signInWithGoogle, validateGoogleEmailDomain, user } = useSupabase();
     
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -96,7 +96,7 @@ export default function LoginPage({ onLogin, onNavigateToRegister }) {
       // Redirect to appropriate dashboard based on role
       window.location.href = data.redirect || "/dashboard";
 
-      /* ===== 
+
       // Sign in with Supabase (using email as username)
       const result = await signIn(uname, password);
 
@@ -115,7 +115,7 @@ export default function LoginPage({ onLogin, onNavigateToRegister }) {
         // Fallback: navigate to dashboard
         window.location.href = "/user";
       }
-      =END SUPABASE AUTH*/
+     
     } catch (err) {
       setError(err.message || "Login failed. Please check your credentials.");
       console.error("Login error:", err);
@@ -125,7 +125,7 @@ export default function LoginPage({ onLogin, onNavigateToRegister }) {
   };
 
   const handleGoogleLogin = async () => {
-    /* SUPABASE GOOGLE LOGIN
+  // SUPABASE GOOGLE LOGIN
     try {
       setError("");
       setIsLoading(true);
@@ -141,7 +141,6 @@ export default function LoginPage({ onLogin, onNavigateToRegister }) {
       console.error("Google login error:", err);
       setIsLoading(false);
     }
-    */
     
     // ito muna error message sa google sign in
     setError("Google login is currently disabled. Please use email/password login.");

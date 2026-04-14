@@ -15,6 +15,7 @@ class StudentCsgOfficer extends Model
     protected $fillable = [
         'id',
         'user_id',
+        'course_id',
         'adviser_id',
         'is_csg',
         'csg_position',
@@ -35,6 +36,11 @@ class StudentCsgOfficer extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id', 'id');
+    }
+
+    public function course(): BelongsTo
+    {
+        return $this->belongsTo(Course::class, 'course_id', 'id');
     }
 
     public function adviser(): BelongsTo

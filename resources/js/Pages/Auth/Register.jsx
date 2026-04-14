@@ -1,10 +1,14 @@
 import { useState, useEffect } from "react";
 import { User, Mail, Lock, Eye, EyeOff, Shield } from "lucide-react";
 import { useSupabase } from "../../context/SupabaseContext";
+import VerifyOTPPage from "./VerifyOTP";
 
 export default function RegisterPage({ onRegister, onNavigateToLogin }) {
   const { signUp, signInWithGoogle, validateGoogleEmailDomain, user } = useSupabase();
-  
+
+  const [showOTPPage, setShowOTPPage] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState("");
+
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -19,6 +23,12 @@ export default function RegisterPage({ onRegister, onNavigateToLogin }) {
   const [showConfirm, setShowConfirm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Log available roles on component mount
+  useEffect(() => {
+    console.log("🎯 Register Component Loaded");
+    console.log("📋 Available Roles:", roleOptions);
+  }, []);
 
   // Role options
   const roleOptions = [
@@ -48,11 +58,6 @@ export default function RegisterPage({ onRegister, onNavigateToLogin }) {
         throw new Error("Please fill in all required fields.");
       }
 
-      // Validate email domain
-      // if (!form.email.endsWith("@kld.edu.ph")) {
-      //   throw new Error("Email must be a valid KLD school email (@kld.edu.ph)");
-      // }
-
       if (form.password.length < 8) {
         throw new Error("Password must be at least 8 characters.");
       }
@@ -65,22 +70,50 @@ export default function RegisterPage({ onRegister, onNavigateToLogin }) {
         throw new Error("You must agree to the terms and conditions.");
       }
 
-      // Sign up with Supabase
-      const userData = {
+      // Send OTP to email via Laravel backend
+      // Supabase Auth user will be created after OTP verification (in backend)
+      console.log("📧 Sending OTP to email:", form.email);
+
+      // Debug: Log what we're sending
+      const payload = {
+        email: form.email,
         firstName: form.firstName,
         lastName: form.lastName,
-        role: form.role,
+        password: form.password,
+        role_id: form.role,
       };
+      console.log("📤 Request payload:", payload);
 
-      const result = await signUp(form.email, form.password, userData);
-      
-      // Call onRegister callback if provided
-      if (onRegister) {
-        onRegister({ ...form, supabaseUser: result.user });
-      } else {
-        // Fallback: navigate to dashboard or login
-        window.location.href = "/user";
+      const response = await fetch("/api/otp/send", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]')?.getAttribute("content"),
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        console.error("❌ OTP Send Error Response:", data);
+
+        // Show detailed validation errors if available
+        if (data.errors) {
+          const errorMessages = Object.values(data.errors)
+            .flat()
+            .join("\n");
+          throw new Error(errorMessages || data.message || "Validation failed");
+        }
+
+        throw new Error(data.message || "Failed to send OTP. Please try again.");
       }
+
+      const data = await response.json();
+      console.log("✅ OTP sent successfully");
+
+      // Store email and show OTP verification page
+      setPendingEmail(form.email);
+      setShowOTPPage(true);
     } catch (err) {
       setError(err.message || "Registration failed. Please try again.");
       console.error("Registration error:", err);
@@ -93,15 +126,14 @@ export default function RegisterPage({ onRegister, onNavigateToLogin }) {
     try {
       setError("");
       setIsLoading(true);
-      
+
       // Initiate Google OAuth sign-up with Supabase
-      // This will redirect to Google login page
       const { error } = await signInWithGoogle();
-      
+
       if (error) {
         throw error;
       }
-      
+
     } catch (err) {
       setError(err.message || "Google sign-up failed. Please try again.");
       console.error("Google sign-up error:", err);
@@ -113,6 +145,29 @@ export default function RegisterPage({ onRegister, onNavigateToLogin }) {
     if (onNavigateToLogin) return onNavigateToLogin();
     window.location.href = '/login';
   };
+
+  const handleOTPVerifySuccess = (data) => {
+    console.log("✅ OTP verified, user registered successfully");
+    // Redirect to user page after OTP verification
+    window.location.href = "/user";
+  };
+
+  const handleBackToRegister = () => {
+    setShowOTPPage(false);
+    setPendingEmail("");
+    setError("");
+  };
+
+  // Show OTP verification page if email registration was submitted
+  if (showOTPPage) {
+    return (
+      <VerifyOTPPage
+        email={pendingEmail}
+        onVerifySuccess={handleOTPVerifySuccess}
+        onBackToRegister={handleBackToRegister}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen flex">
@@ -182,10 +237,10 @@ export default function RegisterPage({ onRegister, onNavigateToLogin }) {
             className="w-full h-10 border border-gray-300 rounded-xl flex items-center justify-center gap-2 bg-white hover:bg-gray-50 transition"
           >
             <svg viewBox="0 0 48 48" width="18" height="18">
-              <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.2l6.7-6.7C35.8 2.2 30.2 0 24 0 14.6 0 6.6 5.4 2.6 13.3l7.8 6C12.3 13 17.7 9.5 24 9.5z"/>
-              <path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.4 5.6-5 7.3l7.8 6C44.2 37.7 46.5 31.6 46.5 24.5z"/>
-              <path fill="#FBBC05" d="M10.4 28.3c-1-3-.9-6.2 0-9.2l-7.8-6C-1.5 18.4-1.5 29.6 2.6 34.9l7.8-6.6z"/>
-              <path fill="#34A853" d="M24 48c6.2 0 11.8-2 15.7-5.5l-7.8-6c-2.2 1.5-5 2.3-7.9 2.3-6.3 0-11.7-3.5-13.6-8.8l-7.8 6C6.6 42.6 14.6 48 24 48z"/>
+              <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.2l6.7-6.7C35.8 2.2 30.2 0 24 0 14.6 0 6.6 5.4 2.6 13.3l7.8 6C12.3 13 17.7 9.5 24 9.5z" />
+              <path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.4 5.6-5 7.3l7.8 6C44.2 37.7 46.5 31.6 46.5 24.5z" />
+              <path fill="#FBBC05" d="M10.4 28.3c-1-3-.9-6.2 0-9.2l-7.8-6C-1.5 18.4-1.5 29.6 2.6 34.9l7.8-6.6z" />
+              <path fill="#34A853" d="M24 48c6.2 0 11.8-2 15.7-5.5l-7.8-6c-2.2 1.5-5 2.3-7.9 2.3-6.3 0-11.7-3.5-13.6-8.8l-7.8 6C6.6 42.6 14.6 48 24 48z" />
             </svg>
             <span className="text-sm text-gray-700 font-medium">
               Continue with Google
@@ -224,23 +279,23 @@ export default function RegisterPage({ onRegister, onNavigateToLogin }) {
                     className="w-full h-10 pl-9 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:border-gray-300 focus:ring-2 focus:ring-gray-200 outline-none transition"
                   />
                 </div>
-            </div>
-              
-            <div>
-              <label className="block text-sm text-gray-600 mb-1">
-                Last Name
-              </label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  placeholder="Cruz"
-                  value={form.lastName}
-                  onChange={(e) => handleChange("lastName", e.target.value)}
-                  className="w-full h-10 pl-9 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:border-gray-300 focus:ring-2 focus:ring-gray-200 outline-none transition"
-                />
               </div>
-            </div>
-             
+
+              <div>
+                <label className="block text-sm text-gray-600 mb-1">
+                  Last Name
+                </label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    placeholder="Cruz"
+                    value={form.lastName}
+                    onChange={(e) => handleChange("lastName", e.target.value)}
+                    className="w-full h-10 pl-9 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:border-gray-300 focus:ring-2 focus:ring-gray-200 outline-none transition"
+                  />
+                </div>
+              </div>
+
             </div>
 
             {/* Email */}
@@ -249,65 +304,65 @@ export default function RegisterPage({ onRegister, onNavigateToLogin }) {
                 Email Address
               </label>
               <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-                type="email"
-                placeholder="your.name@kld.edu.ph"
-                value={form.email}
-                onChange={(e) => handleChange("email", e.target.value)}
-                className="w-full h-10 pl-9 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:border-gray-300 focus:ring-2 focus:ring-gray-200 outline-none transition"
-              />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="email"
+                  placeholder="your.name@kld.edu.ph"
+                  value={form.email}
+                  onChange={(e) => handleChange("email", e.target.value)}
+                  className="w-full h-10 pl-9 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:border-gray-300 focus:ring-2 focus:ring-gray-200 outline-none transition"
+                />
+              </div>
             </div>
-            </div>
-            
+
 
             {/* Passwords */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm text-gray-600 mb-1">
-                Password
+                  Password
                 </label>
                 <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Min. 8 characters"
-                  value={form.password}
-                  onChange={(e) => handleChange("password", e.target.value)}
-                  className="w-full h-10 pl-9 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:border-gray-300 focus:ring-2 focus:ring-gray-200 outline-none transition"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
-                >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Min. 8 characters"
+                    value={form.password}
+                    onChange={(e) => handleChange("password", e.target.value)}
+                    className="w-full h-10 pl-9 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:border-gray-300 focus:ring-2 focus:ring-gray-200 outline-none transition"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
               </div>
-              </div>
-              
+
 
               <div>
                 <label className="block text-sm text-gray-600 mb-1">
-                Confirm Password
+                  Confirm Password
                 </label>
                 <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type={showConfirm ? "text" : "password"}
-                  placeholder="Re-enter password"
-                  value={form.confirmPassword}
-                  onChange={(e) => handleChange("confirmPassword", e.target.value)}
-                  className="w-full h-10 pl-9 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:border-gray-300 focus:ring-2 focus:ring-gray-200 outline-none transition"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirm(!showConfirm)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
-                >
-                  {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type={showConfirm ? "text" : "password"}
+                    placeholder="Re-enter password"
+                    value={form.confirmPassword}
+                    onChange={(e) => handleChange("confirmPassword", e.target.value)}
+                    className="w-full h-10 pl-9 rounded-xl border border-gray-300 bg-gray-50 focus:bg-white focus:border-gray-300 focus:ring-2 focus:ring-gray-200 outline-none transition"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirm(!showConfirm)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                  >
+                    {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
               </div>
 
             </div>

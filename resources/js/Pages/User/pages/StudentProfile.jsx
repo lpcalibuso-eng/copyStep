@@ -45,28 +45,42 @@ const recentActivity = [
 
 export default function StudentProfilePage({ onNavigate }) {
   const { props } = usePage();
-  const { user } = useSupabase();
   const [profileData, setProfileData] = useState(null);
   const accountInfoRef = useRef(null);
 
-  // Initialize profile data from Supabase user
+  // Initialize profile data from Laravel user (step2 database)
+  // Use temporary/fallback data if no user is logged in (for development/testing)
   useEffect(() => {
-    if (user) {
-      const fullName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Student';
-      const profilePicture = user?.user_metadata?.avatar_url || null;
-      
-      setProfileData({
-        fullName,
-        email: user?.email,
-        picture: profilePicture,
-        provider: user?.app_metadata?.provider,
-        identities: user?.identities,
-        createdAt: user?.created_at,
-        lastSignIn: user?.last_sign_in_at,
-        phoneNumber: user?.phone,
-      });
-    }
-  }, [user]);
+    const fallbackUser = {
+      id: null,
+      name: 'Guest User',
+      email: 'guest@example.com',
+      phone: 'Not provided',
+      avatar_url: null,
+      status: 'active',
+      role: { name: 'Student', slug: 'student' },
+      created_at: new Date().toISOString(),
+      email_verified_at: null,
+      profile_completed: false,
+    };
+    
+    const laravelUser = props.auth?.user || fallbackUser;
+    const roleData = laravelUser?.role;
+    
+    setProfileData({
+      fullName: laravelUser?.name || 'Student',
+      email: laravelUser?.email || '',
+      picture: laravelUser?.avatar_url || null,
+      phone: laravelUser?.phone || 'Not provided',
+      role: roleData?.name || 'Student',
+      roleSlug: roleData?.slug || '',
+      status: laravelUser?.status || 'active',
+      createdAt: laravelUser?.created_at,
+      emailVerified: laravelUser?.email_verified_at,
+      profileCompleted: laravelUser?.profile_completed,
+      userId: laravelUser?.id,
+    });
+  }, [props.auth?.user]);
 
   const getActivityIcon = (type) => {
     switch (type) {
@@ -130,20 +144,19 @@ export default function StudentProfilePage({ onNavigate }) {
               {profileData?.email}
             </p>
             <div className="flex flex-wrap gap-2 justify-center md:justify-start">
-              {profileData?.provider && (
-                <Badge className="bg-white/20 hover:bg-white/20 text-white capitalize">
-                  {profileData.provider === 'google' ? '🔵 Google' : profileData.provider}
+              <Badge className="bg-blue-100 hover:bg-blue-100 text-blue-700 font-medium">
+                {profileData?.role || 'Student'}
+              </Badge>
+              {profileData?.emailVerified && (
+                <Badge className="bg-green-100 hover:bg-green-100 text-green-700">
+                  ✓ Email Verified
                 </Badge>
               )}
-              <Badge className="bg-white/20 hover:bg-white/20 text-white">
-                Computer Science
-              </Badge>
-              <Badge className="bg-white/20 hover:bg-white/20 text-white">
-                Junior
-              </Badge>
-              <Badge className="bg-white/20 hover:bg-white/20 text-white">
-                ID: 2024-00123
-              </Badge>
+              {profileData?.profileCompleted && (
+                <Badge className="bg-purple-100 hover:bg-purple-100 text-purple-700">
+                  ✓ Profile Complete
+                </Badge>
+              )}
             </div>
           </div>
         </div>
@@ -183,8 +196,8 @@ export default function StudentProfilePage({ onNavigate }) {
                     className="w-24 h-24 rounded-xl object-cover border-2 border-blue-200"
                   />
                 ) : (
-                  <div className="w-24 h-24 rounded-xl bg-blue-100 border-2 border-blue-200 flex items-center justify-center">
-                    <User className="w-8 h-8 text-blue-600" />
+                  <div className="w-24 h-24 rounded-xl bg-blue-100 border-2 border-blue-200 flex items-center justify-center text-xl font-medium text-blue-600">
+                    {profileData?.fullName?.split(' ').map(n => n[0]).join('').slice(0, 2) || 'U'}
                   </div>
                 )}
                 <button className="absolute bottom-0 right-0 bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-lg transition-colors">
@@ -193,7 +206,7 @@ export default function StudentProfilePage({ onNavigate }) {
               </div>
               <div className="flex-1">
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">Profile Picture</h3>
-                <p className="text-sm text-gray-600 mb-3">Current picture from {profileData?.provider === 'google' ? 'Google Account' : 'Your Account'}</p>
+                <p className="text-sm text-gray-600 mb-3">Update your profile picture from your computer</p>
                 <button 
                   onClick={() => onNavigate('edit-picture')}
                   className="px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
@@ -231,8 +244,8 @@ export default function StudentProfilePage({ onNavigate }) {
                   <School className="w-5 h-5 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Department</p>
-                  <p className="text-gray-900 font-medium">Computer Science</p>
+                  <p className="text-sm text-gray-600">Role</p>
+                  <p className="text-gray-900 font-medium capitalize">{profileData?.role || 'Student'}</p>
                 </div>
               </div>
 
@@ -241,8 +254,8 @@ export default function StudentProfilePage({ onNavigate }) {
                   <Calendar className="w-5 h-5 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Year Level</p>
-                  <p className="text-gray-900 font-medium">Junior</p>
+                  <p className="text-sm text-gray-600">Phone</p>
+                  <p className="text-gray-900 font-medium">{profileData?.phone || 'Not provided'}</p>
                 </div>
               </div>
 
@@ -260,19 +273,16 @@ export default function StudentProfilePage({ onNavigate }) {
                 </div>
               )}
 
-              {/* Last Sign In */}
-              {profileData?.lastSignIn && (
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Calendar className="w-5 h-5 text-purple-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Last Sign In</p>
-                    <p className="text-gray-900 font-medium">{new Date(profileData.lastSignIn).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                    <p className="text-xs text-gray-500">{new Date(profileData.lastSignIn).toLocaleTimeString()}</p>
-                  </div>
+              {/* Account Status */}
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <User className="w-5 h-5 text-purple-600" />
                 </div>
-              )}
+                <div>
+                  <p className="text-sm text-gray-600">Status</p>
+                  <p className="text-gray-900 font-medium capitalize">{profileData?.status || 'active'}</p>
+                </div>
+              </div>
             </div>
 
             {/* Action Buttons */}
