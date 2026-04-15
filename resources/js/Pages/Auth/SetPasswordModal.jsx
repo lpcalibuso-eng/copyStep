@@ -121,12 +121,12 @@ export default function SetPasswordModal({
 
       setSuccess(true);
 
-      // Show success message for 2 seconds, then complete
-      setTimeout(() => {
-        if (onComplete) {
-          onComplete();
-        }
-      }, 2000);
+      // Keep a short success confirmation, then continue.
+      // setTimeout(() => {
+      //   if (onComplete) {
+      //     onComplete();
+      //   }
+      // }, 600);
     } catch (err) {
       console.error("Password set error:", err);
       setError(err.message || "An error occurred. Please try again.");
@@ -146,6 +146,13 @@ export default function SetPasswordModal({
           <p className="text-gray-600">
             You can now log in using this password on shared devices.
           </p>
+          <button
+            type="button"
+            onClick={onComplete}
+            className="mt-6 w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+          >
+            Continue
+          </button>
         </div>
       </div>
     );

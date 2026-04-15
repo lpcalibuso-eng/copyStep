@@ -44,13 +44,6 @@ Route::middleware('guest')->group(function () {
     Route::post('api/otp/resend', [OTPController::class, 'resendOTP']);
     // ======================================================
 
-    // ========== GOOGLE OAUTH ENDPOINTS ==========
-    // This creates/updates user in step2 DB after Google OAuth authentication
-    // NOTE: Using withoutMiddleware to skip CSRF since OAuth comes from external provider
-    Route::post('api/oauth/google-login', [GoogleAuthController::class, 'googleLogin'])
-        ->withoutMiddleware('csrf');
-    // ============================================
-
     Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])
         ->name('password.request');
 
@@ -63,6 +56,13 @@ Route::middleware('guest')->group(function () {
     Route::post('reset-password', [NewPasswordController::class, 'store'])
         ->name('password.store');
 });
+
+// ========== GOOGLE OAUTH ENDPOINTS ==========
+// Keep this outside guest middleware so it always behaves as an API endpoint.
+// NOTE: Using withoutMiddleware to skip CSRF since OAuth comes from external provider
+Route::post('api/oauth/google-login', [GoogleAuthController::class, 'googleLogin'])
+    ->withoutMiddleware('csrf');
+// ============================================
 
 // Institutes API route - accessible to everyone for registration
 Route::get('institutes', [InstituteController::class, 'index']);

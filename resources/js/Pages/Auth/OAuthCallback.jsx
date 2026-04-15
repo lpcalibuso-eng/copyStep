@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { router } from '@inertiajs/react';
 import { useSupabase } from '../../context/SupabaseContext';
 import OnboardingFlow from './OnboardingFlow';
@@ -9,6 +9,7 @@ export default function OAuthCallback() {
   const [validating, setValidating] = useState(true);
   const [oauthUser, setOauthUser] = useState(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const hasHandledCallback = useRef(false);
 
   const [courseList, setCourseList] = useState([]);
   const [instituteList, setInstituteList] = useState([]);
@@ -20,9 +21,11 @@ export default function OAuthCallback() {
 
         // Wait for auth to complete
         if (loading) return;
+        if (hasHandledCallback.current) return;
 
         // Validate the email domain
         if (user && user.email) {
+          hasHandledCallback.current = true;
           if (!user.email.endsWith('@kld.edu.ph')) {
             // Sign out if email is not from valid domain
             await signOut();
@@ -37,10 +40,9 @@ export default function OAuthCallback() {
           console.log('📝 Calling Google OAuth endpoint to create/update user in step2 DB');
           console.log('🆔 Supabase User ID:', user.id);
 
-          const API_BASE_URL = "http://127.0.0.1:8000";
           console.log('📝 Syncing Supabase User to Laravel step2 DB...');
 
-          const response = await fetch(`${API_BASE_URL}/api/oauth/google-login`, {
+          const response = await fetch('/api/oauth/google-login', {
 
             // const response = await fetch('/api/oauth/google-login', {
             method: 'POST',
@@ -73,24 +75,26 @@ export default function OAuthCallback() {
           //   }
           // }
 
-          if (!response.ok) {
-            const contentType = response.headers.get("content-type");
+          const contentType = response.headers.get('content-type') || '';
+          const isJsonResponse = contentType.includes('application/json');
 
-            if (contentType && contentType.includes("application/json")) {
-              // 1. Handle actual API error messages (JSON)
+          if (!response.ok || !isJsonResponse) {
+            if (isJsonResponse) {
               const errorData = await response.json();
               console.error('❌ API Error Data:', errorData);
               throw new Error(errorData.message || 'Failed to create user in database');
-            } else {
-              // 2. Handle Laravel Crash/419/HTML errors (The "<!DOCTYPE" stuff)
-              const errorText = await response.text();
-              console.error('❌ Laravel HTML Error Detected:', response.status);
-
-              // Log the first 200 characters of the HTML to see the PHP error without flooding the console
-              console.log('Error snippet:', errorText.substring(0, 200));
-
-              throw new Error(`Server error: ${response.status}. Please check the Laravel logs or Network tab.`);
             }
+
+            const errorText = await response.text();
+            console.error('❌ Non-JSON response received:', {
+              status: response.status,
+              redirected: response.redirected,
+              url: response.url,
+            });
+            console.log('Error snippet:', errorText.substring(0, 200));
+            throw new Error(
+              `Expected JSON from /api/oauth/google-login but got ${contentType || 'unknown content type'} (status ${response.status}).`
+            );
           }
           // // startt
           // const data = await response.json();
@@ -147,12 +151,14 @@ export default function OAuthCallback() {
             // 1. Fetch the dropdown data here
             try {
               const [cRes, iRes] = await Promise.all([
-                fetch('http://127.0.0.1:8000/api/onboarding/courses', { headers: { 'Accept': 'application/json' } }),
-                fetch('http://127.0.0.1:8000/api/onboarding/institutes', { headers: { 'Accept': 'application/json' } })
+                fetch('/api/onboarding/courses', { headers: { 'Accept': 'application/json' } }),
+                fetch('/api/onboarding/institutes', { headers: { 'Accept': 'application/json' } })
               ]);
 
-              const cData = await cRes.json();
-              const iData = await iRes.json();
+              const cType = cRes.headers.get('content-type') || '';
+              const iType = iRes.headers.get('content-type') || '';
+              const cData = cType.includes('application/json') ? await cRes.json() : { courses: [] };
+              const iData = iType.includes('application/json') ? await iRes.json() : { institutes: [] };
 
               setCourseList(cData.courses || []);
               setInstituteList(iData.institutes || []);
@@ -162,6 +168,10 @@ export default function OAuthCallback() {
 
             setShowOnboarding(true);
             setValidating(false);
+          } else {
+            // Existing user with completed profile: go directly to dashboard.
+            console.log('✅ Profile already completed, redirecting to /user');
+            router.visit('/user');
           }
 
 

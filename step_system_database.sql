@@ -1025,7 +1025,20 @@ ALTER TABLE `sessions`
 --
 ALTER TABLE `student_csg_officers`
   ADD CONSTRAINT `student_csg_officers_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `student_csg_officers_ibfk_2` FOREIGN KEY (`course_id`) REFERENCES `teacher_adviser` (`id`) ON DELETE SET NULL;
+  -- ADD CONSTRAINT `student_csg_officers_ibfk_2` FOREIGN KEY (`course_id`) REFERENCES `teacher_adviser` (`id`) ON DELETE SET NULL;
+  -- Disable foreign key checks temporarily
+SET FOREIGN_KEY_CHECKS = 0;
+
+-- Drop the incorrect constraint
+ALTER TABLE `student_csg_officers` DROP FOREIGN KEY `student_csg_officers_ibfk_2`;
+
+-- Add the correct constraint (references 'course' table, not 'teacher_adviser')
+ALTER TABLE `student_csg_officers`
+  ADD CONSTRAINT `student_csg_officers_ibfk_2` 
+  FOREIGN KEY (`course_id`) REFERENCES `course` (`id`) ON DELETE SET NULL;
+
+-- Re-enable foreign key checks
+SET FOREIGN_KEY_CHECKS = 1;
 
 --
 -- Constraints for table `teacher_adviser`

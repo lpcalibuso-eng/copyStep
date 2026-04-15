@@ -76,8 +76,8 @@ export default function OnboardingModal({
       }
     }
 
-    // Professor/Teacher validation
-    if (form.role === "professor") {
+    // Teacher validation
+    if (form.role === "teacher") {
       if (!form.employee_id) {
         setError("Employee ID is required");
         return false;
@@ -119,8 +119,8 @@ export default function OnboardingModal({
           role: form.role,
           student_id: form.role === "student" ? form.student_id : null,
           course_id: form.role === "student" ? form.course_id : null,
-          employee_id: form.role === "professor" ? form.employee_id : null,
-          institute_id: form.role === "professor" ? form.institute_id : null,
+          employee_id: form.role === "teacher" ? form.employee_id : null,
+          institute_id: form.role === "teacher" ? form.institute_id : null,
           phone_number: form.phone_number || null,
         }),
       });

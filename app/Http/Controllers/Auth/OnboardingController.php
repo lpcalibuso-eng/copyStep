@@ -279,10 +279,10 @@ public function complete(Request $request)
                 'role'         => 'required|string', 
                 'phone_number' => 'nullable|string',
                 // Relationships
-                'student_id'   => 'required_if:role,student|string',
-                'course_id'    => 'required_if:role,student|string',
-                'employee_id'  => 'required_if:role,professor|string',
-                'institute_id' => 'required_if:role,professor|string',
+                'student_id'   => 'nullable|required_if:role,student|string',
+                'course_id'    => 'nullable|required_if:role,student|string',
+                'employee_id'  => 'nullable|required_if:role,teacher,professor|string',
+                'institute_id' => 'nullable|required_if:role,teacher,professor|string',
             ]);
 
             $userId = $validated['user_id'];
@@ -320,11 +320,29 @@ public function complete(Request $request)
                 // Step C: Connect Teacher to Institute
                 if ($role === 'professor' || $role === 'teacher') {
                     $roleRecord = Role::where('slug', 'teacher')->first();
+
+                    // Current DB schema has teacher_adviser.institute_id constrained to permission.id.
+                    // To prevent FK crashes during onboarding, only persist institute_id when it matches permission IDs.
+                    $teacherInstituteId = $validated['institute_id'] ?? null;
+                    if ($teacherInstituteId) {
+                        $isValidForeignKey = DB::table('permission')
+                            ->where('id', $teacherInstituteId)
+                            ->exists();
+
+                        if (!$isValidForeignKey) {
+                            Log::warning('⚠️ Onboarding teacher institute_id does not match current FK target (permission.id). Saving as NULL.', [
+                                'user_id' => $userId,
+                                'provided_institute_id' => $teacherInstituteId,
+                            ]);
+                            $teacherInstituteId = null;
+                        }
+                    }
+
                     TeacherAdviser::updateOrCreate(
                         ['user_id' => $userId],
                         [
                             'id'           => $validated['employee_id'],
-                            'institute_id' => $validated['institute_id'],
+                            'institute_id' => $teacherInstituteId,
                             'is_adviser'   => false,
                         ]
                     );
@@ -338,6 +356,12 @@ public function complete(Request $request)
                 'user_onboarded' => true,
             ], 200);
 
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation error',
+                'errors' => $e->errors(),
+            ], 422);
         } catch (\Exception $e) {
             Log::error('❌ Onboarding Error: ' . $e->getMessage());
             return response()->json([
